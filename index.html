@@ -205,6 +205,75 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/" title="自己写分布式调度组件shield-job之使用shield-job" itemprop="url">自己写分布式调度组件shield-job之使用shield-job</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
+		
+  <p class="article-time">
+    <time datetime="2019-04-15T02:11:46.000Z" itemprop="datePublished"> 发表于 2019-04-15</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>自己写分布式调度组件继续更新，目前已经完成了一个里程碑版本。</p>
+<p>千呼万唤始出来，却不是当初想的模样。之前立的flag太大，最终决定暂时放弃开发分布式版本，把目标改为基于消息队列RocketMQ的任务分发框架，具体的调度逻辑由调用方自行开发。</p>
+<h2 id="客户端接口"><a href="#客户端接口" class="headerlink" title="客户端接口"></a>客户端接口</h2><blockquote>
+<p>首先介绍客户端需要关注的接口以及实体</p>
+</blockquote>
+<h3 id="客户端实体–任务实体BaseJob"><a href="#客户端实体–任务实体BaseJob" class="headerlink" title="客户端实体–任务实体BaseJob"></a>客户端实体–任务实体BaseJob</h3><p>任务实体BaseJob为shield-job的调度核心实体，调用方的业务实体需要继承该作业抽象类，实现其中的<strong>encode()</strong> 以及 <strong>decode(String msg)</strong> 抽象方法。</p>
+        
+        
+        <p class="article-more-link">
+          
+            <a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/#more">Read More</a>
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/自己写分布式组件系列/">自己写分布式组件系列</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/自己写分布式组件系列/">自己写分布式组件系列</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/04/15/自己写分布式调度组件shield-job之使用shield-job/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2019/03/28/跟我学RocketMQ之消息幂等/" title="跟我学RocketMQ之消息幂等" itemprop="url">跟我学RocketMQ之消息幂等</a>
   </h1>
   <p class="article-author">By
@@ -771,74 +840,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2019/03/07/springboot2-x使用thymeleaf上传并显示本地图片/" title="springboot2.x使用thymeleaf上传并显示本地图片" itemprop="url">springboot2.x使用thymeleaf上传并显示本地图片</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
-		
-  <p class="article-time">
-    <time datetime="2019-03-07T14:35:41.000Z" itemprop="datePublished"> 发表于 2019-03-07</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <blockquote>
-<p>本文记录一下如何在springboot2.x环境下，使用thymeleaf上传并显示本地图片</p>
-</blockquote>
-<p>之所以写这个小结是因为今天想做一个运维小工具，用到了图片上传，但是使用了thymeleaf之后，图片无法正确显示。</p>
-<p>查找资料之后，发现需要指定虚拟目录，具体步骤如下。</p>
-        
-        
-        <p class="article-more-link">
-          
-            <a href="/2019/03/07/springboot2-x使用thymeleaf上传并显示本地图片/#more">Read More</a>
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/spring-boot/">spring-boot</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/spring-boot/">spring-boot</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2019/03/07/springboot2-x使用thymeleaf上传并显示本地图片/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/03/07/springboot2-x使用thymeleaf上传并显示本地图片/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><a class="extend next" rel="next" href="/page/2/">Next<span></span></a>
@@ -1005,7 +1006,7 @@
 		  
 		
 		  
-			<li><a href="/categories/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>9</sup></a></li>
+			<li><a href="/categories/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>10</sup></a></li>
 		  
 		
 		  
@@ -1057,7 +1058,7 @@
 			
 		
 			
-				<li><a href="/tags/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>9</sup></a></li>
+				<li><a href="/tags/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>10</sup></a></li>
 			
 		
 			
@@ -1069,15 +1070,11 @@
 			
 		
 			
-				<li><a href="/tags/随笔/" title="随笔">随笔<sup>5</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/mysql/" title="mysql">mysql<sup>5</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Sharding-JDBC/" title="Sharding-JDBC">Sharding-JDBC<sup>4</sup></a></li>
+				<li><a href="/tags/随笔/" title="随笔">随笔<sup>5</sup></a></li>
 			
 		
 			
@@ -1089,19 +1086,23 @@
 			
 		
 			
-				<li><a href="/tags/Dubbo/" title="Dubbo">Dubbo<sup>4</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/分布式-Dubbo/" title="分布式 Dubbo">分布式 Dubbo<sup>4</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/年度总结/" title="年度总结">年度总结<sup>3</sup></a></li>
+				<li><a href="/tags/Sharding-JDBC/" title="Sharding-JDBC">Sharding-JDBC<sup>4</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Dubbo/" title="Dubbo">Dubbo<sup>4</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/maven/" title="maven">maven<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/年度总结/" title="年度总结">年度总结<sup>3</sup></a></li>
 			
 		
 			
@@ -1113,7 +1114,7 @@
 			
 		
 			
-				<li><a href="/tags/Linux/" title="Linux">Linux<sup>2</sup></a></li>
+				<li><a href="/tags/mybatis/" title="mybatis">mybatis<sup>2</sup></a></li>
 			
 		
 			

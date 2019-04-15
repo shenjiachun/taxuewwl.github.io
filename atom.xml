@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-03T02:58:51.420Z</updated>
+  <updated>2019-04-15T06:27:00.107Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,452 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>自己写分布式调度组件shield-job之使用shield-job</title>
+    <link href="http://wuwenliang.net/2019/04/15/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E5%BA%A6%E7%BB%84%E4%BB%B6shield-job%E4%B9%8B%E4%BD%BF%E7%94%A8shield-job/"/>
+    <id>http://wuwenliang.net/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/</id>
+    <published>2019-04-15T02:11:46.000Z</published>
+    <updated>2019-04-15T06:27:00.107Z</updated>
+    
+    <content type="html"><![CDATA[<p>自己写分布式调度组件继续更新，目前已经完成了一个里程碑版本。</p>
+<p>千呼万唤始出来，却不是当初想的模样。之前立的flag太大，最终决定暂时放弃开发分布式版本，把目标改为基于消息队列RocketMQ的任务分发框架，具体的调度逻辑由调用方自行开发。</p>
+<h2 id="客户端接口"><a href="#客户端接口" class="headerlink" title="客户端接口"></a>客户端接口</h2><blockquote>
+<p>首先介绍客户端需要关注的接口以及实体</p>
+</blockquote>
+<h3 id="客户端实体–任务实体BaseJob"><a href="#客户端实体–任务实体BaseJob" class="headerlink" title="客户端实体–任务实体BaseJob"></a>客户端实体–任务实体BaseJob</h3><p>任务实体BaseJob为shield-job的调度核心实体，调用方的业务实体需要继承该作业抽象类，实现其中的<strong>encode()</strong> 以及 <strong>decode(String msg)</strong> 抽象方法。</p>
+<a id="more"></a>
+<p>其中：</p>
+<p>客户端需要在encode()方法中实现业务对象到String形式的消息体转换，如：</p>
+<pre><code>@Override
+public String encode() {
+    // 组装消息协议头
+    ImmutableMap.Builder headerBuilder = new ImmutableMap.Builder&lt;String, String&gt;()
+            .put(&quot;version&quot;, this.getVersion())
+            .put(&quot;jobTopic&quot;, this.getJobTopic())
+            .put(&quot;jobTag&quot;, this.getJobTag())
+            .put(&quot;jobBizDesc&quot;, &quot;测试订单协议&quot;)
+            .put(&quot;jobProducerGroup&quot;, this.getJobProducerGroup())
+            .put(&quot;jobConsumerGroup&quot;, this.getJobConsumerGroup())
+            .put(&quot;jobTraceId&quot;, this.getJobTraceId());
+    header = headerBuilder.build();
+
+    body = new ImmutableMap.Builder&lt;String, String&gt;()
+            .put(&quot;userId&quot;, this.getUserId())
+            .put(&quot;userName&quot;, this.getUserName())
+            .put(&quot;orderId&quot;, this.getOrderId())
+            .build();
+
+    ImmutableMap&lt;String, Object&gt; map = new ImmutableMap.Builder&lt;String, Object&gt;()
+            .put(&quot;header&quot;, header)
+            .put(&quot;body&quot;, body)
+            .build();
+    // 返回序列化消息Json串
+    String ret_string = null;
+    ObjectMapper objectMapper = new ObjectMapper();
+    try {
+        ret_string = objectMapper.writeValueAsString(map);
+    } catch (JsonProcessingException e) {
+        LOGGER.error(&quot;消息序列化json异常:&quot;, e);
+    }
+    return ret_string;
+}
+</code></pre><p>这里我使用了Guava的ImmutableMap作为消息协议的容器，使用jackson作为Json序列化工具。业务调用方必须将BaseJob的属性逐一填充，否则会在调度过程中抛出参数校验异常。</p>
+<p>在decode(String msg)中实现String形式消息体到业务作业对象的转换，如：</p>
+<pre><code>@Override
+public void decode(String msg) {
+    Preconditions.checkNotNull(msg);
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+        JsonNode root = mapper.readTree(msg);
+        // header
+        this.setVersion(root.get(&quot;header&quot;).get(&quot;version&quot;).asText());
+        this.setJobTopic(root.get(&quot;header&quot;).get(&quot;jobTopic&quot;).asText());
+        this.setJobTag(root.get(&quot;header&quot;).get(&quot;jobTag&quot;).asText());
+        this.setJobBizDesc(root.get(&quot;header&quot;).get(&quot;jobBizDesc&quot;).asText());
+        this.setJobProducerGroup(root.get(&quot;header&quot;).get(&quot;jobProducerGroup&quot;).asText());
+        this.setJobConsumerGroup(root.get(&quot;header&quot;).get(&quot;jobConsumerGroup&quot;).asText());
+        this.setJobTraceId(root.get(&quot;header&quot;).get(&quot;jobTraceId&quot;).asText());
+        // body
+        this.setUserName(root.get(&quot;body&quot;).get(&quot;userName&quot;).asText());
+        this.setOrderId(root.get(&quot;body&quot;).get(&quot;orderId&quot;).asText());
+        this.setUserId(root.get(&quot;body&quot;).get(&quot;userId&quot;).asText());
+    } catch (IOException e) {
+        LOGGER.error(&quot;反序列化消息异常:&quot;, e);
+    }
+}
+</code></pre><p>这里我将入参消息实体转换为对象本身，通过this对内部的属性进行赋值，从而实现字符串形式的消息体到对象的转换。避免代码过长影响阅读，完整的代码在下文会放出。</p>
+<h3 id="客户端接口-任务生产"><a href="#客户端接口-任务生产" class="headerlink" title="客户端接口-任务生产"></a>客户端接口-任务生产</h3><blockquote>
+<p>这部分的内容为任务生产过程中需要调用的类及接口</p>
+</blockquote>
+<h4 id="JobProducerExecutor"><a href="#JobProducerExecutor" class="headerlink" title="JobProducerExecutor"></a>JobProducerExecutor</h4><blockquote>
+<p>JobProducerExecutor是shield-job的任务生产调度核心，是final类，不允许被继承。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">类名</th>
+<th style="text-align:left">方法名</th>
+<th style="text-align:left">作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">JobProducerExecutor</td>
+<td style="text-align:left">JobProducerExecutor init(RocketMQProducerProperty rocketMQProducerProperty)</td>
+<td style="text-align:left">初始化任务调度核心类</td>
+</tr>
+<tr>
+<td style="text-align:left">JobProducerExecutor</td>
+<td style="text-align:left">Result<jobsendresult> execute(final JobProducerListener jobProducerListener,Object arg)</jobsendresult></td>
+<td style="text-align:left">执行Job生产逻辑，投递Job消息到MQ中。业务方需要实现JobProducerListener的任务生产回调方法</td>
+</tr>
+<tr>
+<td style="text-align:left">JobProducerExecutor</td>
+<td style="text-align:left">void start() throws MQClientException</td>
+<td style="text-align:left">启动内置的RocketMQ消息生产者,开启任务投递</td>
+</tr>
+<tr>
+<td style="text-align:left">JobProducerExecutor</td>
+<td style="text-align:left">DefaultMQProducer getProducer()</td>
+<td style="text-align:left">获取RocketMQ生产者引用</td>
+</tr>
+<tr>
+<td style="text-align:left">RocketMQConsumerProperty</td>
+<td style="text-align:left">构造方法</td>
+<td style="text-align:left">构造RocketMQ生产者实例配置参数</td>
+</tr>
+</tbody>
+</table>
+<h4 id="JobProducerListener"><a href="#JobProducerListener" class="headerlink" title="JobProducerListener"></a>JobProducerListener</h4><blockquote>
+<p>JobProducerListener是作业生产者接口，客户端的作业生产者需要实现该接口，传入需要进行任务调度的作业实体列表（参数泛型继承BaseJob）</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">类名</th>
+<th style="text-align:left">方法名</th>
+<th style="text-align:left">作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">JobProducerListener<t extends="" basejob=""></t></td>
+<td style="text-align:left">List<t> produce(final Object arg)</t></td>
+<td style="text-align:left">作业调度生产者返回待调度的业务实体协议列表，shield-job会回调该方法并将业务协议列表投递到MQ供作业消费者进行消费</td>
+</tr>
+</tbody>
+</table>
+<p>对于非BaseJob的子类，编译阶段即失败。</p>
+<h3 id="客户端接口–任务消费"><a href="#客户端接口–任务消费" class="headerlink" title="客户端接口–任务消费"></a>客户端接口–任务消费</h3><blockquote>
+<p>这部分为任务调度消费过程涉及到的类及接口</p>
+</blockquote>
+<h4 id="JobConsumerExecutor"><a href="#JobConsumerExecutor" class="headerlink" title="JobConsumerExecutor"></a>JobConsumerExecutor</h4><blockquote>
+<p>JobConsumerExecutor是shield-job的任务消费调度核心，是final类，不允许被继承。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">类名</th>
+<th style="text-align:left">方法名</th>
+<th style="text-align:left">作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">JobConsumerExecutor</td>
+<td style="text-align:left">JobConsumerExecutor execute(RocketMQConsumerProperty rocketMQConsumerProperty,JobConsumerListenerAdapter jobConsumerListenerAdapter)</td>
+<td style="text-align:left">初始化任务消费核心，执行任务消费调度过程</td>
+</tr>
+<tr>
+<td style="text-align:left">JobConsumerExecutor</td>
+<td style="text-align:left">void start() throws MQClientException</td>
+<td style="text-align:left">启动内置的RocketMQ消息消费者，开启任务消费</td>
+</tr>
+<tr>
+<td style="text-align:left">RocketMQProducerProperty</td>
+<td style="text-align:left">构造方法</td>
+<td style="text-align:left">构造RocketMQ消费者实例配置参数</td>
+</tr>
+</tbody>
+</table>
+<h4 id="JobConsumerListenerAdapter"><a href="#JobConsumerListenerAdapter" class="headerlink" title="JobConsumerListenerAdapter"></a>JobConsumerListenerAdapter</h4><blockquote>
+<p>JobConsumerListenerAdapter是shield-job的任务消费监听适配器，通过调用不同的构造方法决定是否进行消费失败消息的重投递</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">类名</th>
+<th style="text-align:left">方法名</th>
+<th style="text-align:left">作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">JobConsumerListenerAdapter</td>
+<td style="text-align:left">JobConsumerListenerAdapter(JobConsumerListener jobConsumerListener)</td>
+<td style="text-align:left">任务消费适配器默认构造，只进行消费不进行消息重发</td>
+</tr>
+<tr>
+<td style="text-align:left">JobConsumerListenerAdapter</td>
+<td style="text-align:left">JobConsumerListenerAdapter(JobConsumerListener jobConsumerListener,JobScheduleExecutorConfig jobScheduleExecutorConfig)</td>
+<td style="text-align:left">任务消费适配器带重发构造，既进行消费又进行消息重发</td>
+</tr>
+<tr>
+<td style="text-align:left">JobConsumerListenerAdapter</td>
+<td style="text-align:left">ConsumeConcurrentlyStatus consumeMessage(List<messageext> msgs,ConsumeConcurrentlyContext context)</messageext></td>
+<td style="text-align:left">任务消费核心接口，客户端消费者调用该方法，shield-job根据构造传参自行决定是直接消费还是需要进行消息重发</td>
+</tr>
+</tbody>
+</table>
+<h4 id="JobConsumerListener"><a href="#JobConsumerListener" class="headerlink" title="JobConsumerListener"></a>JobConsumerListener</h4><blockquote>
+<p>JobConsumerListener是任务消费监听器接口，消费者需要实现consumeMessage方法，完成消息的消费</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">类名</th>
+<th style="text-align:left">方法名</th>
+<th style="text-align:left">作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">JobConsumerListener</td>
+<td style="text-align:left">ConsumeConcurrentlyStatus consumeMessage(final List<messageext> msgs, final ConsumeConcurrentlyContext context)</messageext></td>
+<td style="text-align:left">消息消费，该方法为标准的RocektMQ消费接口</td>
+</tr>
+</tbody>
+</table>
+<h2 id="调用实例"><a href="#调用实例" class="headerlink" title="调用实例"></a>调用实例</h2><p>上述列出的类及其方法即shield-job任务调度的核心接口，直接看确实不直观，这里我用一个实例去讲解下如何在Spring Boot 2.1.2 Release中整合shield-job实现发布订阅模式的任务调度。</p>
+<h3 id="项目结构"><a href="#项目结构" class="headerlink" title="项目结构"></a>项目结构</h3><blockquote>
+<p>项目结构如下</p>
+</blockquote>
+<p><img src="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/./structure.png" alt="shield-job-springboot-demo"></p>
+<h3 id="引入shield-job核心依赖，配置RocketMQ"><a href="#引入shield-job核心依赖，配置RocketMQ" class="headerlink" title="引入shield-job核心依赖，配置RocketMQ"></a>引入shield-job核心依赖，配置RocketMQ</h3><p>首先引入shield-job核心的坐标，需要自行打包并安装到本地，有条件的可以运行 <strong>mvn clean deploy -DskipTests</strong> 直接发布到私服中。</p>
+<p>坐标如下：</p>
+<pre><code>&lt;dependency&gt;
+    &lt;artifactId&gt;shield-job-scheduler-core&lt;/artifactId&gt;
+    &lt;groupId&gt;com.snowalker.shield.job&lt;/groupId&gt;
+    &lt;version&gt;1.0.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre><p>由于shield-job核心通过RocketMQ作为任务队列，因此需要在调用方的配置文件中配置RocketMQ的NameServer地址，例如：</p>
+<pre><code>########################################################################
+#
+#     RocketMQ配置
+#
+#########################################################################
+rocketmq.nameServer=192.168.1.107:9876
+</code></pre><h3 id="调度实例–任务生产者的开发"><a href="#调度实例–任务生产者的开发" class="headerlink" title="调度实例–任务生产者的开发"></a>调度实例–任务生产者的开发</h3><blockquote>
+<p>首先进行业务层任务生产者的开发。</p>
+</blockquote>
+<p>定义一个名为OrderInfoJobProducer的类，并标记为Spring的bean</p>
+<pre><code>@Component
+public class OrderInfoJobProducer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderInfoJobProducer.class);
+</code></pre><p>定义任务发布的MQ的Topic、业务Tag（无tag可以不写）、生产者组、消费者组等参数</p>
+<pre><code>/**
+* 测试订单任务TOPIC
+*/
+private static final String TOPIC = &quot;SNOWALKER_TEST_SHIELD_JOB_TOPIC&quot;;
+/**
+* 测试订单任务TAG
+*/
+private static final String TAG = &quot;SNOWALKER_TEST_SHIELD_JOB_TAG&quot;;
+/**
+* 测试订单生产者组
+*/
+private static final String PRODUCER_GROUP = &quot;PID_SNOWALKER_TEST_SHIELD_JOB&quot;;
+/**
+* 测试订单消费者组
+*/
+private static final String CONSUMER_GROUP = &quot;CID_SNOWALKER_TEST_SHIELD_JOB&quot;;
+</code></pre><p>读入配置文件中的RocketMQ的NameServer地址</p>
+<pre><code>@Value(&quot;${rocketmq.nameServer}&quot;)
+private String nameSrvAddr;
+</code></pre><p>声明shield-job的任务生产者执行器JobProducerExecutor</p>
+<pre><code>private JobProducerExecutor jobProducerExecutor;
+</code></pre><p>通过@PostConstruct方式初始化JobProducerExecutor并开启运行内部的生产者</p>
+<pre><code>@PostConstruct
+public void init() throws MQClientException {
+    // 实例化作业生产调度器
+    jobProducerExecutor = new JobProducerExecutor()
+            .init(new RocketMQProducerProperty(PRODUCER_GROUP,nameSrvAddr));
+    jobProducerExecutor.getProducer().start();
+}
+</code></pre><p>核心调度逻辑，这里可以选用任意的调度框架，此处为spring-scheduler方式，通过 @Scheduled 注解声明此处为定时任务调度核心，并引入配置文件中的cron表达式，示例中的cron表达式为 <strong>0/3 <em> </em> <em> </em> ?</strong>  表示从0S开始，每次调度之间间隔三秒</p>
+<pre><code>@Scheduled(cron = &quot;${order.resend.cron}&quot;)
+public void execute() {
+    try {
+        // 传入JobProducerListener实现类，返回作业实体
+        Result&lt;JobSendResult&gt; jobSendResult = jobProducerExecutor.execute(
+</code></pre><p>此处通过匿名内部类的方式实现了JobProducerListener的回调方法 <strong>produce(Object arg)</strong> 将业务层拼装的业务订单调度协议（OrderInfoJobProcotol继承BaseJob）封装在 List<orderinfojobprocotol> 中，供JobProducerExecutor进行回调，提交任务至RocketMQ中。</orderinfojobprocotol></p>
+<pre><code>(new JobProducerListener() {
+    @Override
+    public List produce(Object arg) {
+        List&lt;OrderInfoJobProcotol&gt; jobs = new ArrayList&lt;&gt;(10);
+        for (int i = 0; i &lt; 1; i++) {
+            OrderInfoJobProcotol orderInfoJobProcotol = new OrderInfoJobProcotol();
+            orderInfoJobProcotol.setOrderId(&quot;OD_&quot; + UUID.randomUUID().toString())
+                    .setUserId(&quot;SNOWALKER_&quot; + UUID.randomUUID().toString())
+                    .setUserName(&quot;SNOWALKER_&quot; + i)
+                    .setJobTraceId(&quot;TRACE_&quot; + UUID.randomUUID().toString())
+                    .setJobTopic(TOPIC)
+                    .setJobTag(TAG)
+                    .setJobProducerGroup(PRODUCER_GROUP)
+                    .setJobConsumerGroup(CONSUMER_GROUP)
+            ;
+            jobs.add(orderInfoJobProcotol);
+        }
+        return jobs;
+    }
+}), null);
+</code></pre><p>这里可以根据返回的 <strong>Result</strong> 对返回的任务提交实体进行更多的操作。JobSendResult中包含了每一次调度中提交成功的任务列表 <strong>sendSuccessJobList</strong> 以及 提交失败的任务列表 <strong>sendFailureJobList</strong>，业务层可以解析这两个列表，进行诸如重发、落库等更多的业务操作。</p>
+<pre><code>        if (jobSendResult == null) {
+            LOGGER.warn(&quot;执行作业分发失败,返回为空,topic={}&quot;, TOPIC);
+        }
+        if (jobSendResult.isSuccess()) {
+            LOGGER.info(&quot;执行作业分发成功,jobSendResult={}&quot;, jobSendResult.toString());
+        }
+    } catch (Exception e) {
+        LOGGER.error(&quot;执行作业分发异常&quot;, e);
+    }
+}
+</code></pre><p>}</p>
+<p>到此就完成了业务层的任务生产者的开发。</p>
+<h3 id="调度实例–任务消费者的开发"><a href="#调度实例–任务消费者的开发" class="headerlink" title="调度实例–任务消费者的开发"></a>调度实例–任务消费者的开发</h3><blockquote>
+<p>接着进行业务层任务消费者的开发。</p>
+</blockquote>
+<p>首先定义一个业务任务消费者类OrderInfoJobConsumer，标记为Spring的bean。</p>
+<pre><code>@Component
+public class OrderInfoJobConsumer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderInfoJobConsumer.class);
+</code></pre><p>声明需要进行订阅的topic、tag（默认为*）、消费者组</p>
+<pre><code>/**测试订单任务TOPIC*/
+private static final String TOPIC = &quot;SNOWALKER_TEST_SHIELD_JOB_TOPIC&quot;;
+/**测试订单任务TAG*/
+private static final String TAG = &quot;SNOWALKER_TEST_SHIELD_JOB_TAG&quot;;
+/**测试订单生产者组*/
+private static final String CONSUMER_GROUP = &quot;CID_SNOWALKER_TEST_SHIELD_JOB&quot;;
+</code></pre><p>引入配置文件中配置的RocketMQ的nameServer地址</p>
+<pre><code>@Value(&quot;${rocketmq.nameServer}&quot;)
+private String nameSrvAddr;
+</code></pre><p>如果需要在消费失败后，进行消息重发，那么需要引入RedisTemplate，不引入则表示不需要框架做消息重发，业务层自行处理消费失败的逻辑。</p>
+<pre><code>@Autowired
+RedisTemplate redisTemplate;
+</code></pre><p>通过@PostConstruct方式启动任务消费者实例，并实现任务消费逻辑，此处为默认不需要框架进行消费失败后重发job消息的业务逻辑书写方式</p>
+<p>@PostConstruct<br>    public void execute() throws Exception {</p>
+<pre><code>    // 不需要重发
+    new JobConsumerExecutor().execute(
+            new RocketMQConsumerProperty(
+                    TOPIC, CONSUMER_GROUP, nameSrvAddr, TAG),
+                        new JobConsumerListenerAdapter(new JobConsumerListener() {
+                            @Override
+                            public ConsumeConcurrentlyStatus consumeMessage(List&lt;MessageExt&gt; msgs, ConsumeConcurrentlyContext context) {
+                                try {
+                                    String msgId = &quot;&quot;;
+                                    String msgBody = &quot;&quot;;
+                                    // 默认msgs只有一条消息
+                                    for (MessageExt msg : msgs) {
+                                        String message = new String(msg.getBody());
+                                        OrderInfoJobProcotol protocol = new OrderInfoJobProcotol();
+                                        protocol.decode(message);
+                                        // 解析打印实体
+                                        msgId = msg.getMsgId();
+                                        msgBody = message;
+                                    }
+                                    LOGGER.info(&quot;模拟订单Job消息消费逻辑结束,状态--[RECONSUME_LATER]--msgId={}&quot;, msgId);
+
+                                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                                } catch (Exception e) {
+                                    LOGGER.error(&quot;钱包扣款消费异常,e={}&quot;, e);
+                                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                                }
+                            }
+                        })).start();
+}
+</code></pre><p>可以看到，我们需要做的事情为：</p>
+<ol>
+<li>实例化一个任务消费执行器JobConsumerExecutor</li>
+<li>调用execute方法，传入RocketMQConsumerProperty实例</li>
+<li>execute的第二个参数为JobConsumerListenerAdapter实例，它接受一个参数JobConsumerListener，这里我们需要实现JobConsumerListener接口，并将具体的实现的引用传入JobConsumerListenerAdapter构造方法</li>
+<li>实现consumeMessage方法，将消费状态ConsumeConcurrentlyStatus返回。shield-job会代理真实的RocketMQ的MessageListenerConcurrently接口，将消费状态返给RocketMQ，效果同直接使用RocketMQ的DefaultMQPushConsumer进行消费相同。</li>
+</ol>
+<p>如果我们使用JobConsumerListenerAdapter的另外一个构造方法，<strong>JobConsumerListenerAdapter(JobConsumerListener jobConsumerListener,JobScheduleExecutorConfig jobScheduleExecutorConfig)</strong> ，该构造方法表示需要对消费失败的消息进行消息重发，那么shield-job会对消费状态ConsumeConcurrentlyStatus进行解析，并对达到重试阈值且重发次数小于3的消息进行消息存储并开启异步线程进行重投递，具体代码如下：</p>
+<pre><code>@PostConstruct
+public void execute1() throws Exception {
+
+    JobScheduleExecutorConfig jobScheduleExecutorConfig =
+            new JobScheduleExecutorConfig(1,
+                    nameSrvAddr,
+                    new MessageStoreRedisTemplate(redisTemplate),
+                    Executors.newScheduledThreadPool(10),
+                    0,
+                    3,
+                    TimeUnit.SECONDS);
+
+    // 需要消息重发
+    new JobConsumerExecutor().execute(
+            new RocketMQConsumerProperty(
+                    TOPIC, CONSUMER_GROUP, nameSrvAddr, TAG),
+            new JobConsumerListenerAdapter(new JobConsumerListener() {
+                @Override
+                public ConsumeConcurrentlyStatus consumeMessage(List&lt;MessageExt&gt; msgs, ConsumeConcurrentlyContext context) {
+                    return getConsumeConcurrentlyStatus(msgs);
+                }
+            }, jobScheduleExecutorConfig)).start();
+}
+</code></pre><p>可以看到，我们需要构造并实例化任务重发配置JobScheduleExecutorConfig，并将其传入JobConsumerListenerAdapter的构造方法中。</p>
+<h4 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h4><p>目前该功能还处于进一步测试阶段，因此建议还是使用 <strong>JobConsumerListenerAdapter(JobConsumerListener jobConsumerListener)</strong> 进行JobConsumerListenerAdapter的实例化。</p>
+<h3 id="调用效果"><a href="#调用效果" class="headerlink" title="调用效果"></a>调用效果</h3><blockquote>
+<p>到这里，我们就完成了业务模块对shield-job的整合及调度任务的开发，运行一下程序看一下执行效果。</p>
+</blockquote>
+<p>首先保证业务系统到RocektMQ的连通，执行启动方法，查看到日志如下：</p>
+<pre><code>2019-04-15 14:16:11.188 [main] INFO  c.s.shield.job.consumer.JobConsumerExecutor [45]
+- JobConsumerExecuter init successfully, topic=SNOWALKER_TEST_SHIELD_JOB_TOPIC, consumerGroup=CID_SNOWALKER_TEST_SHIELD_JOB
+2019-04-15 14:16:13.794 [main] INFO  c.s.shield.job.producer.JobProducerExecutor [56] 
+- JobProducerExecutor init successfully, jobProducerGroup=PID_SNOWALKER_TEST_SHIELD_JOB
+......
+2019-04-15 14:16:14.406 [main] INFO  com.snowalker.shield.jobdemo.App [59] 
+- Started App in 6.482 seconds (JVM running for 7.747)
+2019-04-15 14:16:14.407 [main] INFO  com.snowalker.shield.jobdemo.App [26] 
+- shield-job-server启动完成......
+2019-04-15 14:16:15.577 [scheduling-1] DEBUG c.s.shield.job.producer.JobProducerExecutor [100] 
+- send job message successful, message sendStatus=SEND_OK, msgId=AC1E534751682437C6DC4B28F5D30000, queueOffset=142, transactionId=null, offsetMsgId=AC1E423300002A9F000000000059D06E, regionId=DefaultRegion, sendSuccessJobList.size()=0
+2019-04-15 14:16:15.578 [scheduling-1] INFO  c.s.shield.job.producer.JobProducerExecutor [121] 
+- send job messages finished, sendSuccessJobList messages size=1, sendFailureJobList messages size=0, topic=SNOWALKER_TEST_SHIELD_JOB_TOPIC, tag=SNOWALKER_TEST_SHIELD_JOB_TAG
+2019-04-15 14:16:15.578 [scheduling-1] INFO  c.s.shield.jobdemo.producer.OrderInfoJobProducer [93] 
+- 执行作业分发成功,jobSendResult=Result{code=200, message=&apos;SUCCESS&apos;, content=JobSendResult{sendSuccessJobList=[BaseJob{version=&apos;1.0&apos;, jobTopic=&apos;SNOWALKER_TEST_SHIELD_JOB_TOPIC&apos;, jobTag=&apos;SNOWALKER_TEST_SHIELD_JOB_TAG&apos;, jobBizDesc=&apos;null&apos;, jobProducerGroup=&apos;PID_SNOWALKER_TEST_SHIELD_JOB&apos;, jobConsumerGroup=&apos;CID_SNOWALKER_TEST_SHIELD_JOB&apos;, jobTraceId=&apos;TRACE_cbdb715e-173b-4adc-b0ed-1a1a1aea689c&apos;, jobMsgId=&apos;AC1E534751682437C6DC4B28F5D30000&apos;, params=null}], sendFailureJobList=[]}}
+2019-04-15 14:16:16.454 [ConsumeMessageThread_8] INFO  c.s.shield.jobdemo.consumer.OrderInfoJobConsumer [100] 
+- 模拟订单Job消息消费逻辑结束,状态--[RECONSUME_LATER]--msgId=AC1E534751682437C6DC4B28F5D30000
+</code></pre><p>由于我们的调度生产者和消费者在同一个应用内，因此属于 <strong>“自产自销”</strong> 的模式，模拟的订单作业消息投递到MQ之后，下发至当前应用的消费者，被消费者处理。</p>
+<p>返回RECONSUME_LATER是笔者为了测试重发，在实际业务中，当作业消费成功，直接返回 <strong>ConsumeConcurrentlyStatus.CONSUME_SUCCESS</strong> 即可。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>到此，我们就完成了使用shield-job实现业务上的任务调度逻辑的整合过程。代码地址为: <a href="https://github.com/TaXueWWL/shield-job" target="_blank" rel="external">shield-job</a>。</p>
+<p>后续的文章中，我将对shield-job的实现方式抽丝剥茧，将我在开发过程中的感悟、思考以及一些编码技巧进行进一步的分享。</p>
+<blockquote>
+<p>昨夜西风凋碧树。独上高楼，望尽天涯路。</p>
+</blockquote>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;自己写分布式调度组件继续更新，目前已经完成了一个里程碑版本。&lt;/p&gt;
+&lt;p&gt;千呼万唤始出来，却不是当初想的模样。之前立的flag太大，最终决定暂时放弃开发分布式版本，把目标改为基于消息队列RocketMQ的任务分发框架，具体的调度逻辑由调用方自行开发。&lt;/p&gt;
+&lt;h2 id=&quot;客户端接口&quot;&gt;&lt;a href=&quot;#客户端接口&quot; class=&quot;headerlink&quot; title=&quot;客户端接口&quot;&gt;&lt;/a&gt;客户端接口&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;首先介绍客户端需要关注的接口以及实体&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&quot;客户端实体–任务实体BaseJob&quot;&gt;&lt;a href=&quot;#客户端实体–任务实体BaseJob&quot; class=&quot;headerlink&quot; title=&quot;客户端实体–任务实体BaseJob&quot;&gt;&lt;/a&gt;客户端实体–任务实体BaseJob&lt;/h3&gt;&lt;p&gt;任务实体BaseJob为shield-job的调度核心实体，调用方的业务实体需要继承该作业抽象类，实现其中的&lt;strong&gt;encode()&lt;/strong&gt; 以及 &lt;strong&gt;decode(String msg)&lt;/strong&gt; 抽象方法。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/categories/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
+    
+    
+      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/tags/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
+    
+  </entry>
   
   <entry>
     <title>跟我学RocketMQ之消息幂等</title>
@@ -4575,198 +5021,6 @@ void init() throws Exception {
 &lt;p&gt;RocketMQ的事务消息是目前主流的MQ中唯一支持分布式事务的解决方案，也是众多最终一致性方案中较为成熟的。&lt;/p&gt;
 &lt;p&gt;本文中，我将带领大家了解并运用TransactionMQProducer实现事务消息的发送，并对TransactionMQProducer进行基于Spring的封装，使我们的项目更方便的集成事务消息能力。&lt;/p&gt;
 &lt;p&gt;其中，SpringBoot支持的版本已经上传至github，代码地址为&lt;a href=&quot;https://github.com/TaXueWWL/shield-rocketmq-client-spring/blob/master/src/main/java/com/snowalker/shield/rocketmq/client/RocketMQTransactionProducerAgent.java&quot;&gt;RocketMQTransactionProducerAgent.java&lt;/a&gt;&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="跟我学RocketMQ" scheme="http://wuwenliang.net/categories/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ/"/>
-    
-    
-      <category term="跟我学RocketMQ" scheme="http://wuwenliang.net/tags/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring</title>
-    <link href="http://wuwenliang.net/2019/01/23/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ-1-4-%E4%B9%8B%E6%B6%88%E8%B4%B9%E6%B6%88%E6%81%AF%E5%8F%8A%E5%B0%81%E8%A3%85DefaultMQPushConsumer%E6%94%AF%E6%8C%81spring/"/>
-    <id>http://wuwenliang.net/2019/01/23/跟我学RocketMQ-1-4-之消费消息及封装DefaultMQPushConsumer支持spring/</id>
-    <published>2019-01-23T01:26:47.000Z</published>
-    <updated>2019-01-23T03:27:45.654Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文我将继续讲解如何使用DefaultMQPushConsumer对RocketMQ中的消息进行消费，同时在文章的第二部分将继续带领读者朋友对DefaultMQPushConsumer进行薄封装，让我们在Spring中更容易对消息进行消费。</p>
-<blockquote>
-<p>DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利用DefaultMQPushConsumer实现对普通消息和事务消息的消费。</p>
-</blockquote>
-<a id="more"></a>
-<h2 id="通过DefaultMQProducer消费消息"><a href="#通过DefaultMQProducer消费消息" class="headerlink" title="通过DefaultMQProducer消费消息"></a>通过DefaultMQProducer消费消息</h2><p>首先，声明一个DefaultMQPushConsumer客户端，并通过构造器初始化，构造参数为消费者组。官方建议消费者组以“CID_”开头。</p>
-<pre><code>DefaultMQPushConsumer consumer = 
-    new DefaultMQPushConsumer(&quot;CID_SNOWALKER&quot;);
-</code></pre><p>设置NameServer地址</p>
-<pre><code>defaultMQPushConsumer.setNamesrvAddr(&quot;127.0.0.1:9876&quot;);
-</code></pre><p>设置Consumer第一次启动从队列头部开始消费</p>
-<pre><code>defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-</code></pre><p>设置消费模式为集群方式，CLUSTERING模式下每条消息只会被一个Consumer消费一次，如果设置为BROADCASTING则为广播模式，每个消费者都会将消息消费至少一次。一般我们使用的均为CLUSTERING模式。</p>
-<pre><code>defaultMQPushConsumer.setMessageModel(MessageModel.CLUSTERING);
-</code></pre><p>注册消息监听器，这里需要实现<strong>MessageListenerConcurrently</strong>接口，并实现<strong>consumeMessage(List<messageext> msgs, ConsumeConcurrentlyContext context)</messageext></strong> 方法，我这里的demo是lambda形式，实际上是一样的。如果你不喜欢lambda形式，可以继续使用匿名内部类或者自行定义一个类实现该接口。</p>
-<pre><code>defaultMQPushConsumer.registerMessageListener(
-    (msgs, context) -&gt; {
-        for (MessageExt msg : msgs) {
-            String realMessage = new String(msg.getBody());
-            LOGGER.info(&quot;当前消费线程名={}, 消息id={}, 收到消息为={}&quot;,
-                Thread.currentThread().getName(),
-                msg.getMsgId(),
-                realMessage);
-        }
-        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-    }
-)
-</code></pre><p>这里注意，当消费逻辑执行成功，则返回<strong>ConsumeConcurrentlyStatus.CONSUME_SUCCESS</strong>，后续将不再对该消息进行消费。如果消费逻辑失败，则需要设置为ConsumeConcurrentlyStatus.RECONSUME_LATER, RocketMQ会对消息进行重新推送，默认推送16次，目的是尽量保证消息消费成功，如果达到最大重试次数，还是失败则进入死信队列，等待人工干预。</p>
-<p>调用start()方法，启动对队列的监听，开始进行消息的消费。</p>
-<pre><code>defaultMQPushConsumer.start();
-</code></pre><p>我们尝试运行一下，这里我已经有了对应的消费者，可以看下运行的日志：</p>
-<pre><code>2019-01-23 09:55:25.022  INFO 18784 --- [ublicExecutor_8] c.s.shield.job.publisher.DemoPublisher   : 
-消息id=AC1E5356496018B4AAC2736D06CF0002, 发送结果=SEND_OK
-
-2019-01-23 09:55:27.519  INFO 18784 --- [MessageThread_8] c.s.shield.job.consumer.DemoConsumer     : 
-当前消费线程名=ConsumeMessageThread_8, 消息id=AC1E5356496018B4AAC2736D06CF0002, 收到消息为={&quot;msgName&quot;:&quot;rocketmq-simple-msg-test&quot;,&quot;topicName&quot;:&quot;SNOWALKER_TEST&quot;,&quot;tagName&quot;:&quot;SNOWALKER_TEST-TAG&quot;,&quot;clusterName&quot;:&quot;localhost.localdomain&quot;,&quot;taskName&quot;:&quot;测试消息简单发送------第0次&quot;,&quot;threadSize&quot;:&quot;10&quot;,&quot;threadName&quot;:&quot;simple-msg-test-0&quot;}
-</code></pre><p>可以看到broker推送消息至消费端，并且被成功消费。</p>
-<h2 id="Spring框架整合DefaultMQPushConsumer"><a href="#Spring框架整合DefaultMQPushConsumer" class="headerlink" title="Spring框架整合DefaultMQPushConsumer"></a>Spring框架整合DefaultMQPushConsumer</h2><p>我们仍然基于<strong>Spring Boot v1.5.3.RELEASE</strong>, <strong>Spring v4.3.8.RELEASE</strong> 对DefaultMQPushConsumer进行整合，相关代码已经上传至github </p>
-<p><a href="https://github.com/TaXueWWL/shield-rocketmq-client-spring/blob/master/src/main/java/com/snowalker/shield/rocketmq/client/RocketMQPushConsumerAgent.java" target="_blank" rel="external">RocketMQPushConsumerAgent.java</a></p>
-<p>这里对核心代码进行讲解。</p>
-<p>首先定义RocketMQPushConsumerAgent.java并将其声明为spring的bean，作用域为prototype，即多例形式。</p>
-<pre><code>@Scope(&quot;prototype&quot;)
-@Component
-public class RocketMQPushConsumerAgent {
-</code></pre><p>声明消息监听器及消息消费者</p>
-<pre><code>private MessageListenerConcurrently messageListener;
-
-private DefaultMQPushConsumer defaultMQPushConsumer;
-</code></pre><p>init()方法为核心的初始化逻辑，在该方法中，初始化了DefaultMQPushConsumer，并设置NameServer地址、消费模式以及将外部实现的监听器设置给内部的messageListener引用。</p>
-<p>接着对消息主题进行订阅，对该主题下所有的消息进行监听，这里有待优化，后续将把消息的过滤表达式也暴露给调用者。</p>
-<p>所有的配置参数均通过RocketMQConsumerConfig进行设置，保证接口的整洁性，RocketMQConsumerConfig将在附录中进行简单讲解。</p>
-<pre><code>public RocketMQPushConsumerAgent init(RocketMQConsumerConfig consumerConfig, MessageListenerConcurrently messageListener)  throws MQClientException  {
-    defaultMQPushConsumer = new DefaultMQPushConsumer(consumerConfig.getConsumerGroup());
-    defaultMQPushConsumer.setNamesrvAddr(consumerConfig.getNameSrvAddr());
-    defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-    // 消费模式
-    if (consumerConfig.getMessageModel() != null) {
-        defaultMQPushConsumer.setMessageModel(consumerConfig.getMessageModel());
-    }
-    // 注册监听器
-    this.messageListener = messageListener;
-    defaultMQPushConsumer.registerMessageListener(this.messageListener);
-    defaultMQPushConsumer.subscribe(consumerConfig.getTopic(), &quot;*&quot;);
-    LOGGER.debug(&quot;com.shield.job.message.rocketmq.RocketMQConsumerAgent消费者客户端组装完成&quot;);
-    return this;
-}
-</code></pre><p>独立的启动方法</p>
-<pre><code>public void start() throws MQClientException {
-    this.defaultMQPushConsumer.start();
-}
-</code></pre><p>独立的关闭方法</p>
-<pre><code>public void destroy() {
-    defaultMQPushConsumer.shutdown();
-    LOGGER.debug(&quot;com.shield.job.message.rocketmq.RocketMQConsumerAgent消费者客户端[已关闭]&quot;);
-}
-</code></pre><p>为方便外部对消费者进行进一步的自定义设置，提供外部获取defaultMQPushConsumer的接口。</p>
-<pre><code>public DefaultMQPushConsumer getConsumer() {
-    return defaultMQPushConsumer;
-}
-</code></pre><h2 id="RocketMQPushConsumerAgent使用案例"><a href="#RocketMQPushConsumerAgent使用案例" class="headerlink" title="RocketMQPushConsumerAgent使用案例"></a>RocketMQPushConsumerAgent使用案例</h2><p>仍然依据开头的示例进行改造。</p>
-<pre><code>@Component
-public class DemoConsumer {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
-</code></pre><p>使用@Resource(name = “rocketMQPushConsumerAgent”)或者直接@Autowired将自定义的消息消费者注入。</p>
-<pre><code>@Resource(name = &quot;rocketMQPushConsumerAgent&quot;)
-RocketMQPushConsumerAgent rocketMQConsumerAgent;
-</code></pre><p>调用方需要实现一个返回值为void的方法，并标记为@PostConstruct，在该方法中进行rocketMQConsumerAgent的初始化。当spring在加载过程中，DemoConsumer初始化之前会调用该init()方法初始化rocketMQConsumerAgent。通过start()链式调用，启动消息消费者，内部是调用的defaultMQPushConsumer.start()方法。</p>
-<pre><code>    @PostConstruct
-    void init() {
-        try {
-            rocketMQConsumerAgent.init(
-                    new RocketMQConsumerConfig(
-                            &quot;snowalker-consumer-group&quot;,
-                            &quot;172.30.83.100:9876&quot;,
-                            &quot;SNOWALKER_TEST&quot;,
-                            MessageModel.CLUSTERING),
-                    (msgs, context) -&gt; {
-                        for (MessageExt msg : msgs) {
-                            String realMessage = new String(msg.getBody());
-                            LOGGER.info(&quot;当前消费线程名={}, 消息id={}, 收到消息为={}&quot;,
-                                    Thread.currentThread().getName(),
-                                    msg.getMsgId(),
-                                    realMessage);
-                        }
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                    }
-            ).start();
-            LOGGER.info(&quot;DemoConsumer 初始化RocketMQ简单消息消费者完成&quot;);
-        } catch (MQClientException e) {
-            e.printStackTrace();
-            LOGGER.info(&quot;DemoConsumer 初始化RocketMQ简单消息消费者失败&quot;);
-        }
-
-    }
-}
-</code></pre><p>在init()方法中同时将消息监听器的实现逻辑注入，消费者会加载该接口的实现。</p>
-<h2 id="附录：RocketMQConsumerConfig配置类"><a href="#附录：RocketMQConsumerConfig配置类" class="headerlink" title="附录：RocketMQConsumerConfig配置类"></a>附录：RocketMQConsumerConfig配置类</h2><pre><code>public class RocketMQConsumerConfig {
-
-    /**消费者组*/
-    private String consumerGroup;
-
-    /**nameServer地址*/
-    private String nameSrvAddr;
-
-    /**消息消费主题*/
-    private String topic;
-
-    private MessageModel messageModel;
-
-    public RocketMQConsumerConfig(String consumerGroup, String nameSrvAddr, String topic) {
-        Preconditions.checkNotNull(consumerGroup);
-        Preconditions.checkNotNull(nameSrvAddr);
-        Preconditions.checkNotNull(topic);
-        this.consumerGroup = consumerGroup;
-        this.nameSrvAddr = nameSrvAddr;
-        this.topic = topic;
-    }
-
-    public RocketMQConsumerConfig(String consumerGroup, String nameSrvAddr, String topic, MessageModel messageModel) {
-        Preconditions.checkNotNull(consumerGroup);
-        Preconditions.checkNotNull(nameSrvAddr);
-        Preconditions.checkNotNull(topic);
-        Preconditions.checkNotNull(messageModel);
-        this.consumerGroup = consumerGroup;
-        this.nameSrvAddr = nameSrvAddr;
-        this.topic = topic;
-        this.messageModel = messageModel;
-    }
-
-    public String getConsumerGroup() {
-        return consumerGroup;
-    }
-
-    public String getNameSrvAddr() {
-        return nameSrvAddr;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public MessageModel getMessageModel() {
-        return messageModel;
-    }
-}
-</code></pre><p>该配置类封装了消费者客户端初始化的必填参数，目的是收拢初始化参数，从而使初始化接口更加简洁，符合开闭原则。我的习惯是超过三个参数后就考虑是否封装为一个javabean，封装的前提是在同一个上下文中，希望能够对你有所帮助。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;本文我将继续讲解如何使用DefaultMQPushConsumer对RocketMQ中的消息进行消费，同时在文章的第二部分将继续带领读者朋友对DefaultMQPushConsumer进行薄封装，让我们在Spring中更容易对消息进行消费。&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利用DefaultMQPushConsumer实现对普通消息和事务消息的消费。&lt;/p&gt;
-&lt;/blockquote&gt;
     
     </summary>
     
