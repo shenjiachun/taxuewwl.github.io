@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-15T06:27:00.107Z</updated>
+  <updated>2019-04-16T06:16:41.557Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,171 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>自己写分布式调度组件shield-job之使用单机模式</title>
+    <link href="http://wuwenliang.net/2019/04/16/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E5%BA%A6%E7%BB%84%E4%BB%B6shield-job%E4%B9%8B%E4%BD%BF%E7%94%A8%E5%8D%95%E6%9C%BA%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://wuwenliang.net/2019/04/16/自己写分布式调度组件shield-job之使用单机模式/</id>
+    <published>2019-04-16T03:28:11.000Z</published>
+    <updated>2019-04-16T06:16:41.557Z</updated>
+    
+    <content type="html"><![CDATA[<p>考虑到部分业务场景下没有使用RocketMQ，因此我在之前的基础上添加了对单机模式调度的封装。</p>
+<p>本文就单机模式下，不依赖RocketMQ如何使用shield-job进行定时任务调度展开讲解。</p>
+<p>目前有两种主要的调用方式，客户端实现抽象调度方法 <strong>execute</strong> ，或者直接使用内置的 <strong>executeOneway</strong> 方法进行调用，接下来分别介绍两种方式。</p>
+<a id="more"></a>
+<h2 id="调用方式1-自行实现execute方法"><a href="#调用方式1-自行实现execute方法" class="headerlink" title="调用方式1:自行实现execute方法"></a>调用方式1:自行实现execute方法</h2><p>首先定义单机调度处理器，继承抽象类AbstractJobScheduleStandaloneHandler，需要实现execute()方法。</p>
+<pre><code>public class MyStandaloneScheduleHandler extends AbstractJobScheduleStandaloneHandler {
+
+        @Override
+        public void execute() {
+            // 生产
+            List&lt;String&gt; list = super.produce(new JobScheduleProducerListener&lt;String&gt;() {
+                @Override
+                public List&lt;String&gt; produce(Object arg) {
+                    final List&lt;String&gt; strings2 = new ArrayList&lt;&gt;(10);
+                    for (int i = 0; i &lt; 10; i++) {
+                        String str = &quot;snowalker-----&quot; + i;
+                        strings2.add(str);
+                    }
+                    return strings2;
+                }
+            }, null);
+
+            // 消费
+            super.consume(new JobScheduleConsumerListener&lt;String&gt;() {
+                @Override
+                public Object consume(String s) {
+                    LOGGER.info(&quot;consuming start!!!! s = &quot; + s);
+                    return null;
+                }
+            }, list);
+        }
+    }
+</code></pre><p>在实现类的execute()中，分别调用produce和consume方法，实现生产和消费逻辑。</p>
+<p>其中，在 <strong>produce(JobScheduleProducerListener<t> jobScheduleStandaloneListener, Object arg)</t></strong> 方法中实现生产逻辑，客户端需要传入JobScheduleProducerListener的实例，调用方便的情况下可以直接使用匿名内部类或者lambda表达式，将需要进行调度的列表生产出来，具体的生产过程业务方需要关心。</p>
+<p>生产完成后，将列表返回，并传入 <strong>consume(JobScheduleConsumerListener<t> jobScheduleConsumerListener, List<t> list)</t></t></strong> 方法的第二个参数中，第一个参数为JobScheduleConsumerListener的实例，客户端需要实现消费逻辑，这里的逻辑是单个元素的消费逻辑，不需要再进行迭代了，这样设计的目的是保证集合和单个实体的消费逻辑的统一性。</p>
+<p>写个测试用例测一下，日志输入如下。</p>
+<pre><code>13:46:56.528 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----0
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----1
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----2
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----3
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----4
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----5
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----6
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----7
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----8
+13:46:56.532 [main] INFO COMMON-APPENDER - consuming start!!!! s = snowalker-----9
+</code></pre><h2 id="调用方式2-executeOneway方式"><a href="#调用方式2-executeOneway方式" class="headerlink" title="调用方式2:executeOneway方式"></a>调用方式2:executeOneway方式</h2><p>如果业务逻辑简单，推荐使用executeOneway方式，自描述性更强，调用方式如下</p>
+<p>首先定义业务的调度实现类，execute()使用空实现即可。</p>
+<pre><code>public class MyStandaloneScheduleHandler2 extends AbstractJobScheduleStandaloneHandler {
+
+    @Override
+    public void execute() {
+    }
+}
+</code></pre><p>调用逻辑如下：</p>
+<pre><code>MyStandaloneScheduleHandler scheduleHandler2 = new MyStandaloneScheduleHandler();
+// ②
+scheduleHandler2.executeOneway(new JobScheduleProducerListener&lt;String&gt;() {
+    @Override
+    public List&lt;String&gt; produce(Object arg) {
+        final List&lt;String&gt; strings2 = new ArrayList&lt;&gt;(10);
+        for (int i = 0; i &lt; 10; i++) {
+            String str = &quot;executeOneway---snowalker-----&quot; + i;
+            strings2.add(str);
+        }
+        return strings2;
+    }
+}, new JobScheduleConsumerListener&lt;String&gt;() {
+    @Override
+    public Object consume(String s) {
+        LOGGER.info(&quot;executeOneway---consuming start!!!! s = &quot; + s);
+        return null;
+    }
+});
+</code></pre><p>调用MyStandaloneScheduleHandler实例的executeOneway方法，将生产监听器JobScheduleProducerListener实例，消费监听器JobScheduleConsumerListener实例传入。对②处代码的理解就很直观：通过executeOneway发起业务调度，将JobScheduleProducerListener生产的列表在JobScheduleConsumerListener中进行consume，具体的迭代同样封装在了AbstractJobScheduleStandaloneHandler内部。</p>
+<h2 id="springboot调度实战"><a href="#springboot调度实战" class="headerlink" title="springboot调度实战"></a>springboot调度实战</h2><p>上文中讲解了如何调用单机模式的shield-job，这里通过springboot的定时任务写一个实例，增强理解。</p>
+<p>demo基于 <a href="http://wuwenliang.net/2019/04/15/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E5%BA%A6%E7%BB%84%E4%BB%B6shield-job%E4%B9%8B%E4%BD%BF%E7%94%A8shield-job/">自己写分布式调度组件shield-job之使用shield-job</a> 中的代码。</p>
+<p>代码如下：</p>
+<pre><code>@Component
+public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandaloneHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderInfoJobProducerStandalone.class);
+
+    private JobProducerExecutor jobProducerExecutor;
+
+    @PostConstruct
+    public void init() {
+        LOGGER.info(&quot;单机模式调度执行初始化......&quot;);
+    }
+
+    @Scheduled(cron = &quot;${order.standalone.cron}&quot;)
+    public void execute() {
+        executeOneway(new JobScheduleProducerListener&lt;String&gt;() {
+            @Override
+            public List&lt;String&gt; produce(Object arg) {
+                LOGGER.info(&quot;单机模式作业生产开始...&quot;);
+                final List&lt;String&gt; strings2 = new ArrayList&lt;&gt;(10);
+                for (int i = 0; i &lt; 10; i++) {
+                    String str = &quot;executeOneway---snowalker-----&quot; + i;
+                    strings2.add(str);
+                }
+                LOGGER.info(&quot;单机模式作业生产结束...&quot;);
+                return strings2;
+            }
+        }, new JobScheduleConsumerListener&lt;String&gt;() {
+            @Override
+            public Object consume(String s) {
+                LOGGER.info(&quot;executeOneway---consuming start!!!! s = &quot; + s);
+                return null;
+            }
+        });
+    }
+}
+</code></pre><p>配置的调度cron表达式为：0/3 <em> </em> <em> </em> ?</p>
+<p>从0s开始，每隔扫描运行一次。</p>
+<p>运行程序日志打印如下：</p>
+<pre><code>2019-04-16 14:09:24.001 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [40] 
+    - 单机模式作业生产开始...
+2019-04-16 14:09:24.001 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [46] 
+    - 单机模式作业生产结束...
+2019-04-16 14:09:24.001 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----0
+2019-04-16 14:09:24.001 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----1
+2019-04-16 14:09:24.001 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----2
+2019-04-16 14:09:24.001 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52]
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----3
+2019-04-16 14:09:24.002 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----4
+2019-04-16 14:09:24.002 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----5
+2019-04-16 14:09:24.002 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----6
+2019-04-16 14:09:24.002 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----7
+2019-04-16 14:09:24.002 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----8
+2019-04-16 14:09:24.002 [scheduling-1] INFO  c.s.s.j.p.s.OrderInfoJobProducerStandalone [52] 
+    - executeOneway---consuming start!!!! s = executeOneway---snowalker-----9
+</code></pre><h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>到此就完成了对纯单机模式下调度的抽象和封装的讲解，这种方式对于没有RocketMQ运维能力的项目来讲比较适用。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;考虑到部分业务场景下没有使用RocketMQ，因此我在之前的基础上添加了对单机模式调度的封装。&lt;/p&gt;
+&lt;p&gt;本文就单机模式下，不依赖RocketMQ如何使用shield-job进行定时任务调度展开讲解。&lt;/p&gt;
+&lt;p&gt;目前有两种主要的调用方式，客户端实现抽象调度方法 &lt;strong&gt;execute&lt;/strong&gt; ，或者直接使用内置的 &lt;strong&gt;executeOneway&lt;/strong&gt; 方法进行调用，接下来分别介绍两种方式。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/categories/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
+    
+    
+      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/tags/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
+    
+  </entry>
   
   <entry>
     <title>自己写分布式调度组件shield-job之使用shield-job</title>
@@ -4789,245 +4954,6 @@ public class TestController {
     
     
       <category term="专题-分布式" scheme="http://wuwenliang.net/tags/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>跟我学RocketMQ[1-5]之发送事务消息实现分布式事务及封装TransactionMQProducer支持spring</title>
-    <link href="http://wuwenliang.net/2019/01/23/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ-1-5-%E4%B9%8B%E5%8F%91%E9%80%81%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E5%8F%8A%E5%B0%81%E8%A3%85TransactionMQProducer%E6%94%AF%E6%8C%81spring/"/>
-    <id>http://wuwenliang.net/2019/01/23/跟我学RocketMQ-1-5-之发送事务消息实现分布式事务及封装TransactionMQProducer支持spring/</id>
-    <published>2019-01-23T01:27:24.000Z</published>
-    <updated>2019-01-23T09:14:06.865Z</updated>
-    
-    <content type="html"><![CDATA[<p>这里先说点儿私货，为什么在众多的MQ中，我尤其看好RocketMQ，主要的原因之一就是它的事务消息。</p>
-<p>关于RocketMQ的事务消息的机制，我在之前的一篇文章中已经做过讲解，文章地址 <a href="http://wuwenliang.net/2018/12/13/%E6%88%91%E8%AF%B4%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E4%B9%8B%E6%B6%88%E6%81%AF%E4%B8%80%E8%87%B4%E6%80%A7%E4%BA%8B%E5%8A%A12-rocketmq%E7%9A%84%E5%AE%9E%E7%8E%B0/">我说分布式事务之消息一致性事务2-rocketmq的实现</a></p>
-<p>RocketMQ的事务消息是目前主流的MQ中唯一支持分布式事务的解决方案，也是众多最终一致性方案中较为成熟的。</p>
-<p>本文中，我将带领大家了解并运用TransactionMQProducer实现事务消息的发送，并对TransactionMQProducer进行基于Spring的封装，使我们的项目更方便的集成事务消息能力。</p>
-<p>其中，SpringBoot支持的版本已经上传至github，代码地址为<a href="https://github.com/TaXueWWL/shield-rocketmq-client-spring/blob/master/src/main/java/com/snowalker/shield/rocketmq/client/RocketMQTransactionProducerAgent.java" target="_blank" rel="external">RocketMQTransactionProducerAgent.java</a></p>
-<a id="more"></a>
-<h2 id="发送事务消息"><a href="#发送事务消息" class="headerlink" title="发送事务消息"></a>发送事务消息</h2><h3 id="创建消息生产者"><a href="#创建消息生产者" class="headerlink" title="创建消息生产者"></a>创建消息生产者</h3><pre><code>    public class TransactionProducer {
-        public static void main(String[] args) throws MQClientException, InterruptedException {
-            TransactionListener transactionListener = new TransactionListenerImpl();
-            TransactionMQProducer producer = new TransactionMQProducer(&quot;please_rename_unique_group_name&quot;);
-            ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue&lt;Runnable&gt;(2000), new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    Thread thread = new Thread(r);
-                    thread.setName(&quot;client-transaction-msg-check-thread&quot;);
-                    return thread;
-                }
-            });
-
-        producer.setExecutorService(executorService);
-        producer.setTransactionListener(transactionListener);
-        producer.start();
-
-        String[] tags = new String[] {&quot;TagA&quot;, &quot;TagB&quot;, &quot;TagC&quot;, &quot;TagD&quot;, &quot;TagE&quot;};
-        for (int i = 0; i &lt; 10; i++) {
-            try {
-                Message msg =
-                    new Message(&quot;TopicTest1234&quot;, tags[i % tags.length], &quot;KEY&quot; + i,
-                        (&quot;Hello RocketMQ &quot; + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.sendMessageInTransaction(msg, null);
-                System.out.printf(&quot;%s%n&quot;, sendResult);
-
-                Thread.sleep(10);
-            } catch (MQClientException | UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-        }
-
-        for (int i = 0; i &lt; 100000; i++) {
-            Thread.sleep(1000);
-        }
-        producer.shutdown();
-    }
-}
-</code></pre><p>可以看到，事务消息的主要发送过程和普通消息的基本一致，区别在于需要通过 <strong>producer.setExecutorService(executorService);</strong> 为    TransactionMQProducer设置本地事务执行的线程池，同时需要事务消息生产者TransactionMQProducer设置本地事务执行监听器TransactionListener，这里我通过定义一个TransactionListener的实现类的方式来进行代码的编写，更利于理解，熟练之后可以直接在消息发送的时候通过使用匿名内部类或者lambda表达式的方式直接实现TransactionListener接口。</p>
-<h3 id="实现TransactionListener接口"><a href="#实现TransactionListener接口" class="headerlink" title="实现TransactionListener接口"></a>实现TransactionListener接口</h3><pre><code>public class TransactionListenerImpl implements TransactionListener {
-
-    private AtomicInteger transactionIndex = new AtomicInteger(0);
-
-    private ConcurrentHashMap&lt;String, Integer&gt; localTrans = new ConcurrentHashMap&lt;&gt;();
-
-    @Override
-    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
-        int value = transactionIndex.getAndIncrement();
-        int status = value % 3;
-        localTrans.put(msg.getTransactionId(), status);
-        return LocalTransactionState.UNKNOW;
-    }
-
-    @Override
-    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
-        Integer status = localTrans.get(msg.getTransactionId());
-        if (null != status) {
-            switch (status) {
-                case 0:
-                    return LocalTransactionState.UNKNOW;
-                case 1:
-                    return LocalTransactionState.COMMIT_MESSAGE;
-                case 2:
-                    return LocalTransactionState.ROLLBACK_MESSAGE;
-            }
-        }
-        return LocalTransactionState.COMMIT_MESSAGE;
-    }
-}
-</code></pre><p>需要实现TransactionListener的两个回调方法。</p>
-<p>实现executeLocalTransaction（<strong>本地事务逻辑</strong>）方法。消息生产者需要在executeLocalTransaction中执行本地事务当事务半消息提交成功，执行完毕后需要返回事务状态码。</p>
-<p>实现checkLocalTransaction（<strong>事务回查逻辑</strong>）方法，该方法用于进行本地事务执行情况回查，并回应事务状态给MQ的broker，执行完成之后需要返回对应的事务状态码。</p>
-<p>到这里就完成了一个事务消息的发送者。</p>
-<h2 id="封装TransactionMQProducer整合spring"><a href="#封装TransactionMQProducer整合spring" class="headerlink" title="封装TransactionMQProducer整合spring"></a>封装TransactionMQProducer整合spring</h2><p>理解了事务消息的发送机制，我们还是基于 <strong>Spring Boot v1.5.3.RELEASE</strong>, <strong>Spring v4.3.8.RELEASE</strong> 对TransactionMQProducer进行薄封装。</p>
-<p>直接上代码。</p>
-<p>首先声明RocketMQTransactionProducerAgent并标注为一个spring的bean，作用域为多例。</p>
-<pre><code>@Component
-@Scope(&quot;prototype&quot;)
-public class RocketMQTransactionProducerAgent {
-</code></pre><p>声明事务消息发送者，事务执行监听器。</p>
-<pre><code>private TransactionMQProducer producer;
-
-private TransactionListener transactionListener;
-
-private static final Logger LOGGER = LoggerFactory.getLogger(RocketMQTransactionProducerAgent.class);
-</code></pre><p>init()方法中进行消息生产者的初始化，在构造方法中声明一个事务消息生产者组，然后设置NameServer的地址。外部需要定义好一个本地事务执行的线程池（ExecutorService）并将实例化后的线程池引用设置给TransactionMQProducer。</p>
-<p>同时，外界需要实现TransactionListener接口，并将该接口实现类的引用设置给TransactionMQProducer。</p>
-<pre><code>public RocketMQTransactionProducerAgent init(RocketMQTransactionProducerConfig transactionProducerConfig,
-                                            TransactionListener transactionListener) throws Exception {
-    producer = new TransactionMQProducer(transactionProducerConfig.getProducerGroup());
-    producer.setNamesrvAddr(transactionProducerConfig.getNameSrvAddr());
-    // 设置本地事务执行线程池
-    producer.setExecutorService(transactionProducerConfig.getExecutorService());
-    this.transactionListener = transactionListener;
-    // 设置本地事务执行监听器
-    producer.setTransactionListener(this.transactionListener);
-    LOGGER.debug(&quot;com.shield.job.message.rocketmq.RocketMQTransactionProducerAgent[初始化完成]&quot;);
-    return this;
-}
-</code></pre><p>封装后的启动方法</p>
-<pre><code>/**
-* 启动消费者服务
-*/
-public void start() throws MQClientException {
-    this.producer.start();
-}
-</code></pre><p>封装后的关闭方法</p>
-<pre><code>public void destroy() {
-    this.producer.shutdown();
-    LOGGER.debug(&quot;com.shield.job.message.rocketmq.RocketMQTransactionProducerAgent[已关闭]&quot;);
-}
-</code></pre><p>为方便调用方对消息生产者TransactionMQProducer的定制，提供接口返回TransactionMQProducer实例。</p>
-<pre><code>    public TransactionMQProducer getProducer() {
-        return this.producer;
-    }
-}
-</code></pre><h2 id="RocketMQTransactionProducerAgent使用案例"><a href="#RocketMQTransactionProducerAgent使用案例" class="headerlink" title="RocketMQTransactionProducerAgent使用案例"></a>RocketMQTransactionProducerAgent使用案例</h2><p>按照惯例，我们还是基于文章开头的示例进行改造，代码如下。</p>
-<pre><code>@Component
-public class DemoTransactionPublisher {
-
-
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(DemoTransactionPublisher.class);
-</code></pre><p>注入RocketMQTransactionProducerAgent事务消息发送端</p>
-<pre><code>@Resource(name = &quot;rocketMQTransactionProducerAgent&quot;)
-RocketMQTransactionProducerAgent transactionProducerAgent;
-
-private AtomicInteger transactionIndex = new AtomicInteger(0);
-
-private ConcurrentHashMap&lt;String, Integer&gt; localTrans = new ConcurrentHashMap&lt;&gt;();
-</code></pre><p>声明本地事务执行线程池</p>
-<pre><code>ExecutorService executorService;
-</code></pre><p>定义返回值为void的方法，标注为@PostConstruct以便spring容器加载过程中对事务消息发送客户端进行初始化操作。</p>
-<pre><code>@PostConstruct
-void init() throws Exception {
-</code></pre><p>初始化本地事务执行线程池，这里尽量使用ThreadPoolExecutor初始化线程池，更加灵活。</p>
-<pre><code>executorService =
-        new ThreadPoolExecutor(
-                5,
-                512,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue&lt;Runnable&gt;(1024));
-</code></pre><p>调用transactionProducerAgent的<strong>init(RocketMQTransactionProducerConfig transactionProducerConfig, TransactionListener transactionListener)</strong> 方法，通过RocketMQTransactionProducerConfig设置事务消息发送组，NameServer地址，并将实现定义好的线程池引用传递进去。</p>
-<pre><code>transactionProducerAgent.init(new RocketMQTransactionProducerConfig(
-                &quot;CID_SNOWALKER_TRANSACTION&quot;,
-                &quot;172.30.83.100:9876&quot;,
-                executorService),
-</code></pre><p>实现本地事务执行监听器，实现其中的本地事务执行方法及回查方法。</p>
-<pre><code>new TransactionListener() {
-    @Override
-    public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
-        int value = transactionIndex.getAndIncrement();
-        int status = value % 3;
-        localTrans.put(msg.getTransactionId(), status);
-        LOGGER.info(&quot;返回本地事务执行结果为:LocalTransactionState.UNKNOW&quot;);
-        System.out.println(&quot;222222222222222222222&quot;);
-        return LocalTransactionState.UNKNOW;
-    }
-
-    @Override
-    public LocalTransactionState checkLocalTransaction(MessageExt msg) {
-        Integer status = localTrans.get(msg.getTransactionId());
-        if (null != status) {
-            switch (status) {
-                case 0:
-                    return LocalTransactionState.UNKNOW;
-                case 1:
-                    return LocalTransactionState.COMMIT_MESSAGE;
-                case 2:
-                    return LocalTransactionState.ROLLBACK_MESSAGE;
-            }
-        }
-        System.out.println(&quot;11111111111111111111111&quot;);
-        LOGGER.info(&quot;返回本地事务执行结果为:LocalTransactionState.COMMIT_MESSAGE&quot;);
-        return LocalTransactionState.COMMIT_MESSAGE;
-    }
-}
-</code></pre><p>调用start()方法启动事务发送端</p>
-<pre><code>).start();
-</code></pre><p>这里的逻辑是发送半消息的逻辑，发送方需要根据自己的业务定义事务半消息体，保证本地事务执行成功后，能够将必须的参数传递给消息消费者从而保证本地事务执行与半消息发送同时成功、同时失败。</p>
-<p>当发送方的本地事务提交，确保半消息一定能够推送给消费者一侧。消费者通过消息重试机制，保证两侧的状态达到最终一致。如果消费者不断的消费，达到最大重试次数，还是不能够消费成功，则消息进入死信队列，人工干预。</p>
-<pre><code>        String[] tags = new String[] {&quot;TagA&quot;, &quot;TagB&quot;, &quot;TagC&quot;, &quot;TagD&quot;, &quot;TagE&quot;};
-        for (int i = 0; i &lt; 10; i++) {
-            try {
-                Message msg =
-                        new Message(&quot;TopicTest1234&quot;, tags[i % tags.length], &quot;KEY&quot; + i,
-                                (&quot;Hello RocketMQ &quot; + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = transactionProducerAgent.getProducer().sendMessageInTransaction(msg, null);
-                System.out.printf(&quot;%s%n&quot;, sendResult);
-
-                Thread.sleep(10);
-            } catch (MQClientException | UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-        }
-
-        for (int i = 0; i &lt; 100000; i++) {
-            Thread.sleep(1000);
-        }
-    }
-}
-</code></pre><h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文的核心还是在于讲解如何使用RocketMQ的API完成事务消息的发送，以及如何对其进行封装，使开发更加便捷。</p>
-<p>只要理解了RocketMQ事务消息机理，相信聪明的你会很容易上手代码开发，所以这里我还是建议学习一门新技术，不要仅仅满足于会调用API，关键还是要理解原理，举一反三，相信你一定可以以不变应万变。</p>
-<blockquote>
-<p>子曰：不愤不启，不悱不发。举一隅不以三隅反，则不复也。</p>
-</blockquote>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;这里先说点儿私货，为什么在众多的MQ中，我尤其看好RocketMQ，主要的原因之一就是它的事务消息。&lt;/p&gt;
-&lt;p&gt;关于RocketMQ的事务消息的机制，我在之前的一篇文章中已经做过讲解，文章地址 &lt;a href=&quot;http://wuwenliang.net/2018/12/13/%E6%88%91%E8%AF%B4%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E4%B9%8B%E6%B6%88%E6%81%AF%E4%B8%80%E8%87%B4%E6%80%A7%E4%BA%8B%E5%8A%A12-rocketmq%E7%9A%84%E5%AE%9E%E7%8E%B0/&quot;&gt;我说分布式事务之消息一致性事务2-rocketmq的实现&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;RocketMQ的事务消息是目前主流的MQ中唯一支持分布式事务的解决方案，也是众多最终一致性方案中较为成熟的。&lt;/p&gt;
-&lt;p&gt;本文中，我将带领大家了解并运用TransactionMQProducer实现事务消息的发送，并对TransactionMQProducer进行基于Spring的封装，使我们的项目更方便的集成事务消息能力。&lt;/p&gt;
-&lt;p&gt;其中，SpringBoot支持的版本已经上传至github，代码地址为&lt;a href=&quot;https://github.com/TaXueWWL/shield-rocketmq-client-spring/blob/master/src/main/java/com/snowalker/shield/rocketmq/client/RocketMQTransactionProducerAgent.java&quot;&gt;RocketMQTransactionProducerAgent.java&lt;/a&gt;&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="跟我学RocketMQ" scheme="http://wuwenliang.net/categories/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ/"/>
-    
-    
-      <category term="跟我学RocketMQ" scheme="http://wuwenliang.net/tags/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ/"/>
     
   </entry>
   

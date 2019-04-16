@@ -205,6 +205,72 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2019/04/16/自己写分布式调度组件shield-job之使用单机模式/" title="自己写分布式调度组件shield-job之使用单机模式" itemprop="url">自己写分布式调度组件shield-job之使用单机模式</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
+		
+  <p class="article-time">
+    <time datetime="2019-04-16T03:28:11.000Z" itemprop="datePublished"> 发表于 2019-04-16</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>考虑到部分业务场景下没有使用RocketMQ，因此我在之前的基础上添加了对单机模式调度的封装。</p>
+<p>本文就单机模式下，不依赖RocketMQ如何使用shield-job进行定时任务调度展开讲解。</p>
+<p>目前有两种主要的调用方式，客户端实现抽象调度方法 <strong>execute</strong> ，或者直接使用内置的 <strong>executeOneway</strong> 方法进行调用，接下来分别介绍两种方式。</p>
+        
+        
+        <p class="article-more-link">
+          
+            <a href="/2019/04/16/自己写分布式调度组件shield-job之使用单机模式/#more">Read More</a>
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/自己写分布式组件系列/">自己写分布式组件系列</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/自己写分布式组件系列/">自己写分布式组件系列</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2019/04/16/自己写分布式调度组件shield-job之使用单机模式/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/04/16/自己写分布式调度组件shield-job之使用单机模式/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/" title="自己写分布式调度组件shield-job之使用shield-job" itemprop="url">自己写分布式调度组件shield-job之使用shield-job</a>
   </h1>
   <p class="article-author">By
@@ -772,74 +838,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2019/03/11/我说分布式之分库分表/" title="我说分布式之分库分表" itemprop="url">我说分布式之分库分表</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
-		
-  <p class="article-time">
-    <time datetime="2019-03-11T03:27:55.000Z" itemprop="datePublished"> 发表于 2019-03-11</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <blockquote>
-<p>分布式应用架构下，数据量及接口并发量大幅上升后，单数据库由于无法抗住大流量、高并发的请求，从而造成数据库查询缓慢，频繁锁记录等问题。</p>
-</blockquote>
-<p>为了解决上述的问题，在分布式环境下，常用的应对高并发、大流量场景的方案之一就是分库分表。</p>
-<p>拆分主要分垂直和水平两种。<br></p>
-        
-        
-        <p class="article-more-link">
-          
-            <a href="/2019/03/11/我说分布式之分库分表/#more">Read More</a>
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/专题-分布式/">专题-分布式</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/专题-分布式/">专题-分布式</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2019/03/11/我说分布式之分库分表/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/03/11/我说分布式之分库分表/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><a class="extend next" rel="next" href="/page/2/">Next<span></span></a>
@@ -1006,7 +1004,7 @@
 		  
 		
 		  
-			<li><a href="/categories/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>10</sup></a></li>
+			<li><a href="/categories/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>11</sup></a></li>
 		  
 		
 		  
@@ -1058,7 +1056,7 @@
 			
 		
 			
-				<li><a href="/tags/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>10</sup></a></li>
+				<li><a href="/tags/自己写分布式组件系列/" title="自己写分布式组件系列">自己写分布式组件系列<sup>11</sup></a></li>
 			
 		
 			
