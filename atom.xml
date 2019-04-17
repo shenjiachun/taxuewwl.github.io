@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-17T06:56:45.240Z</updated>
+  <updated>2019-04-17T07:37:19.169Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -20,14 +20,14 @@
     <link href="http://wuwenliang.net/2019/04/17/%E8%B7%9F%E6%88%91%E5%AD%A6SPI%E4%B9%8BSPI%E8%AF%A6%E8%A7%A3%E5%8F%8A%E5%AE%9E%E6%88%98/"/>
     <id>http://wuwenliang.net/2019/04/17/跟我学SPI之SPI详解及实战/</id>
     <published>2019-04-17T05:55:51.000Z</published>
-    <updated>2019-04-17T06:56:45.240Z</updated>
+    <updated>2019-04-17T07:37:19.169Z</updated>
     
     <content type="html"><![CDATA[<p>首先了解下何为SPI，这里引用Dubbo官方对SPI的解说，比较全面。<a href="http://dubbo.apache.org/zh-cn/docs/source_code_guide/dubbo-spi.html" target="_blank" rel="external">SPI简介</a></p>
 <blockquote>
 <p>SPI 全称为 Service Provider Interface，是一种服务发现机制。SPI 的本质是将接口实现类的全限定名配置在文件中，并由服务加载器读取配置文件，加载实现类。这样可以在运行时，动态为接口替换实现类。正因此特性，我们可以很容易的通过 SPI 机制为我们的程序提供拓展功能。</p>
 </blockquote>
 <p>Dubbo本身实现了对JDK的SPI的扩展，为了能够更好的理解Dubbo的SPI机制，我们需要理解JDK的原生SPI原理。</p>
-<p>从概念可以看出，SPI机制是一种服务发现机制，能够顾在运行时动态的增加、获取服务实现。个人感觉很像设计原则中的里氏替换原则。</p>
+<p>从概念可以看出，SPI机制是一种服务发现机制，能够在运行时动态的增加、获取服务实现。个人感觉很像设计原则中的里氏替换原则。</p>
 <p>我将通过一个实例来讲解如何对JDK的SPI进行运用。</p>
 <a id="more"></a>
 <h2 id="首先定义接口"><a href="#首先定义接口" class="headerlink" title="首先定义接口"></a>首先定义接口</h2><p>首先定义一个名为DemoInterface的接口，定义两个抽象方法。</p>
@@ -52,7 +52,7 @@
     }
 }
 </code></pre><p>className()返回了UserServiceImpl的全限定名。</p>
-<h2 id="定义实现-JetFighterServiceImpl"><a href="#定义实现-JetFighterServiceImpl" class="headerlink" title="定义实现-JetFighterServiceImpl"></a>定义实现-JetFighterServiceImpl</h2><p>不同于UserServiceImpl，JetFighterServiceImpl为战斗机（太中二了）实现，execute方法为通过战机型号放回对应的战机实例。所有的战机实例通过static代码块加载到ConcurrentHashMap中。</p>
+<h2 id="定义实现-JetFighterServiceImpl"><a href="#定义实现-JetFighterServiceImpl" class="headerlink" title="定义实现-JetFighterServiceImpl"></a>定义实现-JetFighterServiceImpl</h2><p>不同于UserServiceImpl，JetFighterServiceImpl为战斗机（太中二了）实现，execute方法为通过战机型号返回对应的战机实例。所有的战机实例通过static代码块加载到ConcurrentHashMap中。</p>
 <pre><code>public class JetFighterServiceImpl implements DemoInterface&lt;JetFighter, String&gt; {
 
     private static final Map&lt;String, JetFighter&gt; JET_FIGHTER_MAP =
@@ -118,7 +118,7 @@
 <p>然后通过foreach遍历所有的DemoInterface的实例，并依次加载到serviveContext中，key=实例的全限定类名，value为实例。</p>
 <p>getServiceInstance(String className) 方法通过实例的全限定名，从serviveContext中获取对应的DemoInterface的实现类的实例。</p>
 <h2 id="编写服务定义"><a href="#编写服务定义" class="headerlink" title="编写服务定义"></a>编写服务定义</h2><p>最后一步，也是比较关键的步骤。</p>
-<p>我们需要在classpath下建立META-INF，并在META-INF下建立services文件夹，并建立文件名为DemoInterface的全限定的文本文件，及文件名为：com.snowalker.spi.DemoInterface</p>
+<p>我们需要在classpath下建立META-INF，并在META-INF下建立services文件夹，并建立文件名为DemoInterface的全限定的文本文件，文件名为：com.snowalker.spi.DemoInterface</p>
 <p>我的项目基于maven构建，因此我在resources下建立了目录 <strong>META-INF/services/</strong> ，在该路径下建立文本文件，名为 <strong>com.snowalker.spi.DemoInterface</strong> 。</p>
 <p>打开该文本文件，并在其中添加所有DemoInterface的实现类的全限定名，一行一个，具体的内容如下：</p>
 <pre><code># DemoInterface实现类
@@ -170,7 +170,7 @@ Process finished with exit code 0
 &lt;p&gt;SPI 全称为 Service Provider Interface，是一种服务发现机制。SPI 的本质是将接口实现类的全限定名配置在文件中，并由服务加载器读取配置文件，加载实现类。这样可以在运行时，动态为接口替换实现类。正因此特性，我们可以很容易的通过 SPI 机制为我们的程序提供拓展功能。&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;Dubbo本身实现了对JDK的SPI的扩展，为了能够更好的理解Dubbo的SPI机制，我们需要理解JDK的原生SPI原理。&lt;/p&gt;
-&lt;p&gt;从概念可以看出，SPI机制是一种服务发现机制，能够顾在运行时动态的增加、获取服务实现。个人感觉很像设计原则中的里氏替换原则。&lt;/p&gt;
+&lt;p&gt;从概念可以看出，SPI机制是一种服务发现机制，能够在运行时动态的增加、获取服务实现。个人感觉很像设计原则中的里氏替换原则。&lt;/p&gt;
 &lt;p&gt;我将通过一个实例来讲解如何对JDK的SPI进行运用。&lt;/p&gt;
     
     </summary>
