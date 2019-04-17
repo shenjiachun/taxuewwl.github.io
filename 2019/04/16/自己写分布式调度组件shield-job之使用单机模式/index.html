@@ -21,7 +21,7 @@
 <meta property="og:description" content="考虑到部分业务场景下没有使用RocketMQ，因此我在之前的基础上添加了对单机模式调度的封装。
 本文就单机模式下，不依赖RocketMQ如何使用shield-job进行定时任务调度展开讲解。
 目前有两种主要的调用方式，客户端实现抽象调度方法 execute ，或者直接使用内置的 executeOneway 方法进行调用，接下来分别介绍两种方式。">
-<meta property="og:updated_time" content="2019-04-16T06:16:41.557Z">
+<meta property="og:updated_time" content="2019-04-16T08:19:08.044Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="自己写分布式调度组件shield-job之使用单机模式">
 <meta name="twitter:description" content="考虑到部分业务场景下没有使用RocketMQ，因此我在之前的基础上添加了对单机模式调度的封装。
@@ -280,6 +280,14 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 	
 <nav class="article-nav clearfix">
  
+ <div class="prev" >
+ <a href="/2019/04/17/跟我学SPI之SPI详解及实战/" title="跟我学SPI之SPI详解及实战">
+  <strong>上一篇：</strong><br/>
+  <span>
+  跟我学SPI之SPI详解及实战</span>
+</a>
+</div>
+
 
 <div class="next">
 <a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/"  title="自己写分布式调度组件shield-job之使用shield-job">
@@ -343,7 +351,7 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 		  
 		
 		  
-			<li><a href="/categories/Java/" title="Java">Java<sup>22</sup></a></li>
+			<li><a href="/categories/Java/" title="Java">Java<sup>23</sup></a></li>
 		  
 		
 		  
@@ -511,7 +519,7 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 			
 		
 			
-				<li><a href="/tags/Java/" title="Java">Java<sup>22</sup></a></li>
+				<li><a href="/tags/Java/" title="Java">Java<sup>23</sup></a></li>
 			
 		
 			
@@ -539,6 +547,18 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 			
 		
 			
+				<li><a href="/tags/Sharding-JDBC/" title="Sharding-JDBC">Sharding-JDBC<sup>4</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Dubbo/" title="Dubbo">Dubbo<sup>4</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/分布式-Dubbo/" title="分布式 Dubbo">分布式 Dubbo<sup>4</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/JDK源码解析/" title="JDK源码解析">JDK源码解析<sup>4</sup></a></li>
 			
 		
@@ -547,15 +567,7 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 			
 		
 			
-				<li><a href="/tags/分布式-Dubbo/" title="分布式 Dubbo">分布式 Dubbo<sup>4</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Sharding-JDBC/" title="Sharding-JDBC">Sharding-JDBC<sup>4</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Dubbo/" title="Dubbo">Dubbo<sup>4</sup></a></li>
+				<li><a href="/tags/docker/" title="docker">docker<sup>3</sup></a></li>
 			
 		
 			
@@ -571,7 +583,7 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 			
 		
 			
-				<li><a href="/tags/docker/" title="docker">docker<sup>3</sup></a></li>
+				<li><a href="/tags/Linux/" title="Linux">Linux<sup>2</sup></a></li>
 			
 		
 			
@@ -579,11 +591,7 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
 			
 		
 			
-				<li><a href="/tags/auth/" title="auth">auth<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/nginx/" title="nginx">nginx<sup>2</sup></a></li>
+				<li><a href="/tags/hexo/" title="hexo">hexo<sup>2</sup></a></li>
 			
 		
 		</ul>

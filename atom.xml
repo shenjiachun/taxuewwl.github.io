@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-16T06:16:41.557Z</updated>
+  <updated>2019-04-17T06:39:23.293Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -16,11 +16,170 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>跟我学SPI之SPI详解及实战</title>
+    <link href="http://wuwenliang.net/2019/04/17/%E8%B7%9F%E6%88%91%E5%AD%A6SPI%E4%B9%8BSPI%E8%AF%A6%E8%A7%A3%E5%8F%8A%E5%AE%9E%E6%88%98/"/>
+    <id>http://wuwenliang.net/2019/04/17/跟我学SPI之SPI详解及实战/</id>
+    <published>2019-04-17T05:55:51.000Z</published>
+    <updated>2019-04-17T06:39:23.293Z</updated>
+    
+    <content type="html"><![CDATA[<p>首先了解下何为SPI，这里引用Dubbo官方对SPI的解说，比较全面。<a href="http://dubbo.apache.org/zh-cn/docs/source_code_guide/dubbo-spi.html" target="_blank" rel="external">SPI简介</a></p>
+<blockquote>
+<p>SPI 全称为 Service Provider Interface，是一种服务发现机制。SPI 的本质是将接口实现类的全限定名配置在文件中，并由服务加载器读取配置文件，加载实现类。这样可以在运行时，动态为接口替换实现类。正因此特性，我们可以很容易的通过 SPI 机制为我们的程序提供拓展功能。</p>
+</blockquote>
+<p>Dubbo本身实现了对JDK的SPI的扩展，为了能够更好的理解Dubbo的SPI机制，我们需要理解JDK的原生SPI原理。</p>
+<p>从概念可以看出，SPI机制是一种服务发现机制，能够顾在运行时动态的增加、获取服务实现。个人感觉很像设计原则中的里氏替换原则。</p>
+<p>我将通过一个实例来讲解如何对JDK的SPI进行运用。</p>
+<a id="more"></a>
+<h2 id="首先定义接口"><a href="#首先定义接口" class="headerlink" title="首先定义接口"></a>首先定义接口</h2><p>首先定义一个名为DemoInterface的接口，定义两个抽象方法。</p>
+<pre><code>public interface DemoInterface&lt;T, P&gt; {
+
+    T execute(P p);
+
+    String className();
+}
+</code></pre><p>注意：<strong>className()</strong> 实现类实现该方法，需要返回子类的全限定名。</p>
+<h2 id="定义实现-UserServiceImpl"><a href="#定义实现-UserServiceImpl" class="headerlink" title="定义实现-UserServiceImpl"></a>定义实现-UserServiceImpl</h2><p>为了说明问题，我们需要定义两个不同的实现类，首先定义UserServiceImpl，实现接口的方法，execute方法为通过userName构造不同的User实体并返回。</p>
+<pre><code>public class UserServiceImpl implements  DemoInterface&lt;User, String&gt; {
+
+    @Override
+    public User execute(String userName) {
+        return new User().setUserId(&quot;123123123&quot;).setUserName(userName);
+    }
+
+    @Override
+    public String className() {
+        return UserServiceImpl.class.getCanonicalName();
+    }
+}
+</code></pre><p>className()返回了UserServiceImpl的全限定名。</p>
+<h2 id="定义实现-JetFighterServiceImpl"><a href="#定义实现-JetFighterServiceImpl" class="headerlink" title="定义实现-JetFighterServiceImpl"></a>定义实现-JetFighterServiceImpl</h2><p>不同于UserServiceImpl，JetFighterServiceImpl为战斗机（太中二了）实现，execute方法为通过战机型号放回对应的战机实例。所有的战机实例通过static代码块加载到ConcurrentHashMap中。</p>
+<pre><code>public class JetFighterServiceImpl implements DemoInterface&lt;JetFighter, String&gt; {
+
+    private static final Map&lt;String, JetFighter&gt; JET_FIGHTER_MAP =
+            new ConcurrentHashMap&lt;&gt;(16);
+
+    static {
+        JET_FIGHTER_MAP.put(&quot;f15&quot;, new JetFighter().setJetId(&quot;f15&quot;).setJetName(&quot;F15战斗机&quot;));
+        JET_FIGHTER_MAP.put(&quot;f22&quot;, new JetFighter().setJetId(&quot;f22&quot;).setJetName(&quot;F22战斗机&quot;));
+        JET_FIGHTER_MAP.put(&quot;f35&quot;, new JetFighter().setJetId(&quot;f35&quot;).setJetName(&quot;F35战斗机&quot;));
+        JET_FIGHTER_MAP.put(&quot;j20&quot;, new JetFighter().setJetId(&quot;j20&quot;).setJetName(&quot;J15战斗机&quot;));
+        JET_FIGHTER_MAP.put(&quot;j31&quot;, new JetFighter().setJetId(&quot;j31&quot;).setJetName(&quot;J31战斗机&quot;));
+    }
+
+    @Override
+    public JetFighter execute(String s) {
+        return JET_FIGHTER_MAP.get(s);
+    }
+
+    @Override
+    public String className() {
+        return JetFighterServiceImpl.class.getCanonicalName();
+    }
+}
+</code></pre><p>className()返回了JetFighterServiceImpl的全限定名。</p>
+<h2 id="通过ServiceLoader加载服务"><a href="#通过ServiceLoader加载服务" class="headerlink" title="通过ServiceLoader加载服务"></a>通过ServiceLoader加载服务</h2><p>定义好不同的接口实现，我们需要通过ServiceLoader加载服务，建立一个bean工厂，将服务实例解析后设置到bean工厂中。</p>
+<pre><code>public class DemoServiceFactory {
+
+    private static final Map&lt;String, DemoInterface&gt; serviveContext =
+            new ConcurrentHashMap&lt;&gt;();
+
+    private static DemoServiceFactory factory = null;
+
+    private DemoServiceFactory() {
+        ServiceLoader&lt;DemoInterface&gt; serviceLoaders =
+                ServiceLoader.load(DemoInterface.class);
+        for (DemoInterface demoInterface : serviceLoaders) {
+            serviveContext.put(demoInterface.className(), demoInterface);
+        }
+    }
+
+    public static DemoServiceFactory getInstance() {
+        if(factory == null) {
+            synchronized (Object.class) {
+                if (factory == null) {
+                    factory = new DemoServiceFactory();
+                }
+            }
+        }
+        return factory;
+    }
+
+    public DemoInterface getServiceInstance(String className) {
+        DemoInterface demoInterface = serviveContext.get(className);
+        if (demoInterface == null) {
+            throw new IllegalArgumentException(&quot;请输入合法的className&quot;);
+        }
+        return demoInterface;
+    }
+}
+</code></pre><p>这里解释下DemoServiceFactory工厂的实现。</p>
+<p>DemoServiceFactory是基于线程安全懒汉模式的单例实现。首先实例化了一个ConcurrentHashMap，它就是我们的Bean容器，key为DemoInterface的实例全限定名，value为DemoInterface的具体实例。</p>
+<p>在DemoServiceFactory的私有构造方法中，我们通过 <strong>ServiceLoader.load(Class service)</strong> 方法加载了所有的DemoInterface。</p>
+<p>然后通过foreach遍历所有的DemoInterface的实例，并依次加载到serviveContext中，key=实例的全限定类名，value为实例。</p>
+<p>getServiceInstance(String className) 方法通过实例的全限定名，从serviveContext中获取对应的DemoInterface的实现类的实例。</p>
+<h2 id="编写服务定义"><a href="#编写服务定义" class="headerlink" title="编写服务定义"></a>编写服务定义</h2><p>最后一步，也是比较关键的步骤。</p>
+<p>我们需要在classpath下建立META-INF，并在META-INF下建立services文件夹，并建立文件名为DemoInterface的全限定的文本文件，及文件名为：com.snowalker.spi.DemoInterface</p>
+<p>我的项目基于maven构建，因此我在resources下建立了目录 <strong>META-INF/services/</strong> ，在该路径下建立文本文件，名为 <strong>com.snowalker.spi.DemoInterface</strong> 。</p>
+<p>打开该文本文件，并在其中添加所有DemoInterface的实现类的全限定名，一行一个，具体的内容如下：</p>
+<pre><code># DemoInterface实现类
+com.snowalker.impl.UserServiceImpl
+com.snowalker.impl.JetFighterServiceImpl
+</code></pre><p>注释不会解析。</p>
+<p>到此，我们的SPI开发就基本结束了，应用通过DemoServiceFactory获取实例的时候，ServiceLoader会扫描META-INF/services下的接口定义文件，并加载所有的实例。</p>
+<h2 id="编写测试"><a href="#编写测试" class="headerlink" title="编写测试"></a>编写测试</h2><p>我们写一个测试用例测试一下上面写的demo是否能满足我们的需求–通过实现类的全限定名获取到对应的实现类实例。</p>
+<p>代码如下：</p>
+<pre><code>DemoServiceFactory demoServiceFactory =
+        DemoServiceFactory.getInstance();
+String userServiceImplClassName = &quot;com.snowalker.impl.UserServiceImpl&quot;;
+String jetFighterServiceImplClassName = &quot;com.snowalker.impl.JetFighterServiceImpl&quot;;
+
+DemoInterface&lt;User, String&gt; userInstance = demoServiceFactory.getServiceInstance(userServiceImplClassName);
+DemoInterface&lt;JetFighter, String&gt; jetFightInstance = demoServiceFactory.getServiceInstance(jetFighterServiceImplClassName);
+
+System.out.println(&quot;---------用户服务实例调用开始-----------&quot;);
+User result = userInstance.execute(&quot;snowalker&quot;);
+System.out.println(&quot;         用户服务实例调用结束：&quot;  + result.toString());
+
+System.out.println(&quot;---------战斗机服务调用开始--------------&quot;);
+JetFighter fighter = jetFightInstance.execute(&quot;j20&quot;);
+System.out.println(&quot;         战斗机服务实例调用结束：&quot;  + fighter.toString());
+</code></pre><p>我们分别获取UserServiceImpl、JetFighterServiceImpl的实例，并调用各自的execute方法。</p>
+<p>运行测试用例，打印如下：</p>
+<pre><code>---------用户服务实例调用开始-----------
+        用户服务实例调用结束：User{userId=&apos;123123123&apos;, userName=&apos;snowalker&apos;}
+---------战斗机服务调用开始--------------
+        战斗机服务实例调用结束：JetFighter{jetId=&apos;j20&apos;, jetName=&apos;J15战斗机&apos;}
+
+Process finished with exit code 0
+</code></pre><p>可以看到，调用达到预期，通过SPI的ServiceLoader，我们实现了一种更加优雅的工厂模式。</p>
+<p>之所以说优雅，就在于我们能够通过只编写接口实现类并在META-INF/services下的接口定义文件中配置实现类的全限定名，就可以按需获取不同的接口实例。这种方式在大量的接口实现类场景下优势很明显，我们不需要实现包扫描以及实例的加载，避免了重复造轮子，而且借助SPI方式，实现更加稳定美观。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;首先了解下何为SPI，这里引用Dubbo官方对SPI的解说，比较全面。&lt;a href=&quot;http://dubbo.apache.org/zh-cn/docs/source_code_guide/dubbo-spi.html&quot;&gt;SPI简介&lt;/a&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;SPI 全称为 Service Provider Interface，是一种服务发现机制。SPI 的本质是将接口实现类的全限定名配置在文件中，并由服务加载器读取配置文件，加载实现类。这样可以在运行时，动态为接口替换实现类。正因此特性，我们可以很容易的通过 SPI 机制为我们的程序提供拓展功能。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Dubbo本身实现了对JDK的SPI的扩展，为了能够更好的理解Dubbo的SPI机制，我们需要理解JDK的原生SPI原理。&lt;/p&gt;
+&lt;p&gt;从概念可以看出，SPI机制是一种服务发现机制，能够顾在运行时动态的增加、获取服务实现。个人感觉很像设计原则中的里氏替换原则。&lt;/p&gt;
+&lt;p&gt;我将通过一个实例来讲解如何对JDK的SPI进行运用。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Java" scheme="http://wuwenliang.net/categories/Java/"/>
+    
+    
+      <category term="Java" scheme="http://wuwenliang.net/tags/Java/"/>
+    
+  </entry>
+  
+  <entry>
     <title>自己写分布式调度组件shield-job之使用单机模式</title>
     <link href="http://wuwenliang.net/2019/04/16/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E5%BA%A6%E7%BB%84%E4%BB%B6shield-job%E4%B9%8B%E4%BD%BF%E7%94%A8%E5%8D%95%E6%9C%BA%E6%A8%A1%E5%BC%8F/"/>
     <id>http://wuwenliang.net/2019/04/16/自己写分布式调度组件shield-job之使用单机模式/</id>
     <published>2019-04-16T03:28:11.000Z</published>
-    <updated>2019-04-16T06:16:41.557Z</updated>
+    <updated>2019-04-16T08:19:08.044Z</updated>
     
     <content type="html"><![CDATA[<p>考虑到部分业务场景下没有使用RocketMQ，因此我在之前的基础上添加了对单机模式调度的封装。</p>
 <p>本文就单机模式下，不依赖RocketMQ如何使用shield-job进行定时任务调度展开讲解。</p>
@@ -185,7 +344,7 @@ public class OrderInfoJobProducerStandalone extends AbstractJobScheduleStandalon
     <link href="http://wuwenliang.net/2019/04/15/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E5%BA%A6%E7%BB%84%E4%BB%B6shield-job%E4%B9%8B%E4%BD%BF%E7%94%A8shield-job/"/>
     <id>http://wuwenliang.net/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/</id>
     <published>2019-04-15T02:11:46.000Z</published>
-    <updated>2019-04-15T06:27:00.107Z</updated>
+    <updated>2019-04-16T08:19:01.758Z</updated>
     
     <content type="html"><![CDATA[<p>自己写分布式调度组件继续更新，目前已经完成了一个里程碑版本。</p>
 <p>千呼万唤始出来，却不是当初想的模样。之前立的flag太大，最终决定暂时放弃开发分布式版本，把目标改为基于消息队列RocketMQ的任务分发框架，具体的调度逻辑由调用方自行开发。</p>
@@ -4769,191 +4928,6 @@ if you want to utilize time zone support.
     
     
       <category term="mysql" scheme="http://wuwenliang.net/tags/mysql/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>SkyWalking分布式链路追踪部署初探</title>
-    <link href="http://wuwenliang.net/2019/02/14/SkyWalking%E5%88%86%E5%B8%83%E5%BC%8F%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA%E9%83%A8%E7%BD%B2%E5%88%9D%E6%8E%A2/"/>
-    <id>http://wuwenliang.net/2019/02/14/SkyWalking分布式链路追踪部署初探/</id>
-    <published>2019-02-14T07:54:59.000Z</published>
-    <updated>2019-03-06T01:30:23.226Z</updated>
-    
-    <content type="html"><![CDATA[<p>SkyWalking是一款分布式系统中用于提供分布式追踪功能的开源软件。</p>
-<p>从5.x开始，项目进化为一个功能完备的APM(Application Performance Management)系统。被用于追踪、监控和诊断分布式系统，特别是使用微服务架构，云原生或容器技术。提供以下主要功能：</p>
-<pre><code>分布式追踪和上下文传输
-应用、实例、服务性能指标分析
-根源分析
-应用拓扑分析
-应用和服务依赖分析
-慢服务检测
-性能优化
-</code></pre><p>它的主要特性如下:</p>
-<pre><code>多语言探针或类库
-    Java自动探针，追踪和监控程序时，不需要修改源码。
-    社区提供的其他多语言探针
-        .NET Core
-        Node.js
-多种后端存储： ElasticSearch， H2
-支持OpenTracing
-    Java自动探针支持和OpenTracing API协同工作
-轻量级、完善功能的后端聚合和分析
-现代化Web UI
-日志集成
-应用、实例和服务的告警
-</code></pre><a id="more"></a>
-<p>本文主要记录一下如何在windows开发环境下搭建并集成Skywalking的agent实现应用的链路追踪功能。</p>
-<h2 id="下载安装SkyWalking的二进制包"><a href="#下载安装SkyWalking的二进制包" class="headerlink" title="下载安装SkyWalking的二进制包"></a>下载安装SkyWalking的二进制包</h2><p>在如下地址选择对应的环境下载SkyWalking的二进制包。笔者是windows因此直接下载zip包。</p>
-<p><a href="http://skywalking.apache.org/downloads/" target="_blank" rel="external">下载地址</a></p>
-<h2 id="解压二进制包"><a href="#解压二进制包" class="headerlink" title="解压二进制包"></a>解压二进制包</h2><p>解压后打开文件夹如下</p>
-<p><img src="/2019/02/14/SkyWalking分布式链路追踪部署初探/./folder.png" alt="文件内容"></p>
-<h2 id="启动收集器及UI管理界面"><a href="#启动收集器及UI管理界面" class="headerlink" title="启动收集器及UI管理界面"></a>启动收集器及UI管理界面</h2><p>SkyWalking 的启动包括两部分，一个是 SkyWalking Collector ，一个是 SkyWalking UI。</p>
-<p>bat 为 windows 环境使用，sh 为 linux 环境使用，我们可以分别启动collectorService 和 webappService，也可以通过 startup 一次性全部启动，从 startup 中的命令可以知道其实就是分别启动  collectorService 和 webappService。</p>
-<p>这里为了方便直接使用startup启动收集服务和webUI服务。</p>
-<p>启动后效果如下</p>
-<p><img src="/2019/02/14/SkyWalking分布式链路追踪部署初探/./startup.png" alt="启动效果"></p>
-<h2 id="应用集成"><a href="#应用集成" class="headerlink" title="应用集成"></a>应用集成</h2><p>由于SkyWalking使用了javaagent作为应用集成方式，应用不需要硬编码即可方便的集成链路追踪能力，这里主要是javaagent的class文件的改写原理，不展开讲解了。</p>
-<p>笔者使用了一个springboot应用，打成jar之后，通过 <strong>java -jar</strong> 方式启动，完整命令如下</p>
-<pre><code>java 
--javaagent:/path/to/skywalking-agent/skywalking-agent.jar
--jar app.jar
-</code></pre><h2 id="生产环境配置"><a href="#生产环境配置" class="headerlink" title="生产环境配置"></a>生产环境配置</h2><p>上面的配置为本地配置，默认将数据上传至本地的Collector, 在生产环境中，需要指定collector的地址，并标记本服务名称，便于在<br>页面看到调用链信息。</p>
-<pre><code>java 
- -javaagent:/path/skywalking-agent/skywalking-agent-6.0.0-GA/skywalking-agent.jar \
- -DSW_AGENT_COLLECTOR_BACKEND_SERVICES=$sw_agent_collector_backend_services -DSW_LOGGING_LEVEL=$sw_logging_level -DSW_AGENT_NAME=$app_name \
- -Dspring.profiles.active=prod \
- -jar /app/pmsupbasecore.jar
-</code></pre><p>参数可以使用环境变量指定，对应的解释如下</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">配置名称</th>
-<th style="text-align:left">解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">SW_AGENT_COLLECTOR_BACKEND_SERVICES</td>
-<td style="text-align:left">skywalking的collector地址</td>
-</tr>
-<tr>
-<td style="text-align:left">SW_LOGGING_LEVEL</td>
-<td style="text-align:left">skywalking的日志等级</td>
-</tr>
-<tr>
-<td style="text-align:left">SW_AGENT_NAME</td>
-<td style="text-align:left">应用名称</td>
-</tr>
-</tbody>
-</table>
-<h2 id="效果验证"><a href="#效果验证" class="headerlink" title="效果验证"></a>效果验证</h2><p>这里简单的看下笔者实验的代码</p>
-<pre><code>@Controller
-public class TestController {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestController.class);
-
-    private static final String MESSAGE = &quot;{\&quot;code\&quot;:\&quot;400\&quot;,\&quot;msg\&quot;:\&quot;FAIL\&quot;,\&quot;desc\&quot;:\&quot;触发限流\&quot;}&quot;;
-
-    @ResponseBody
-    @RequestMapping(&quot;ratelimiter&quot;)
-    @RateLimiter(key = &quot;ratedemo:1.0.0&quot;, limit = 5, expire = 10, message = MESSAGE)
-    public String sendPayment(HttpServletRequest request) throws Exception {
-
-        this.publish();
-        return &quot;正常请求&quot;;
-    }
-
-    @Resource(name = &quot;rocketMQSimpleProducerAgent&quot;)
-    RocketMQSimpleProducerAgent rocketMQProducerAgent;
-
-    @PostConstruct
-    void init() throws Exception {
-        rocketMQProducerAgent.init(new RocketMQProducerConfig(
-                &quot;group-snowalker&quot;,
-                &quot;172.30.83.100:9876&quot;
-        )).start();
-    }
-
-    public void publish() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        for (int i = 0; i &lt; 10; i++) {
-            try {
-                MessageBean msg = new MessageBean(&quot;rocketmq-simple-msg-test&quot;,
-                        &quot;SNOWALKER_TEST&quot;,
-                        &quot;SNOWALKER_TEST-TAG&quot;,
-                        &quot;localhost.localdomain&quot;,
-                        &quot;测试消息简单发送------第&quot; + i + &quot;次&quot;,
-                        &quot;10&quot;,
-                        &quot;simple-msg-test-&quot; + i);
-                String message  = objectMapper.writeValueAsString(msg);
-
-                Message sendMessage = new Message(
-                        msg.getTopicName(), msg.getTagName(), message.getBytes());
-
-                rocketMQProducerAgent.getProducer().send(sendMessage, new SendCallback() {
-                    @Override
-                    public void onSuccess(SendResult sendResult) {
-                        LOGGER.info(&quot;消息id={}, 发送结果={}&quot; ,sendResult.getMsgId(), sendResult.getSendStatus());
-                    }
-
-                    @Override
-                    public void onException(Throwable throwable) {
-                        LOGGER.info(&quot;消息主题={}, 消息体={}&quot; ,sendMessage.getTopic(), new String(sendMessage.getBody()));
-                        throwable.printStackTrace();
-                    }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-}
-</code></pre><p>通过访问路径 <strong><a href="http://localhost:8080/ratelimiter" target="_blank" rel="external">http://localhost:8080/ratelimiter</a></strong> 路径，往RocketMQ中发送消息，并返回Redis中的限流结果。这里主要访问了三个组件：</p>
-<ol>
-<li>springboot应用</li>
-<li>rocketmq</li>
-<li>redis</li>
-</ol>
-<p>发送若干次请求后，打开SkyWalking的UI看到效果如下：</p>
-<p><img src="/2019/02/14/SkyWalking分布式链路追踪部署初探/./1.png" alt="效果1"></p>
-<p><img src="/2019/02/14/SkyWalking分布式链路追踪部署初探/./2.png" alt="效果2"></p>
-<p><img src="/2019/02/14/SkyWalking分布式链路追踪部署初探/./3.png" alt="效果3"></p>
-<p>可以看到，SkyWalking支持对redis、rocketMQ的监控，更多的支持列表请参考该链接：<a href="https://github.com/apache/incubator-skywalking/blob/5.x/docs/Supported-list.md" target="_blank" rel="external">支持列表</a></p>
-<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>到这里，我们就搭建并运行完成windows开发环境下的skywalking，更多的使用还需要我们继续探索。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;SkyWalking是一款分布式系统中用于提供分布式追踪功能的开源软件。&lt;/p&gt;
-&lt;p&gt;从5.x开始，项目进化为一个功能完备的APM(Application Performance Management)系统。被用于追踪、监控和诊断分布式系统，特别是使用微服务架构，云原生或容器技术。提供以下主要功能：&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;分布式追踪和上下文传输
-应用、实例、服务性能指标分析
-根源分析
-应用拓扑分析
-应用和服务依赖分析
-慢服务检测
-性能优化
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;它的主要特性如下:&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;多语言探针或类库
-    Java自动探针，追踪和监控程序时，不需要修改源码。
-    社区提供的其他多语言探针
-        .NET Core
-        Node.js
-多种后端存储： ElasticSearch， H2
-支持OpenTracing
-    Java自动探针支持和OpenTracing API协同工作
-轻量级、完善功能的后端聚合和分析
-现代化Web UI
-日志集成
-应用、实例和服务的告警
-&lt;/code&gt;&lt;/pre&gt;
-    
-    </summary>
-    
-      <category term="专题-分布式" scheme="http://wuwenliang.net/categories/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-      <category term="专题-分布式" scheme="http://wuwenliang.net/tags/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
     
   </entry>
   
