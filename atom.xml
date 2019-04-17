@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-17T06:39:23.293Z</updated>
+  <updated>2019-04-17T06:56:45.240Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://wuwenliang.net/2019/04/17/%E8%B7%9F%E6%88%91%E5%AD%A6SPI%E4%B9%8BSPI%E8%AF%A6%E8%A7%A3%E5%8F%8A%E5%AE%9E%E6%88%98/"/>
     <id>http://wuwenliang.net/2019/04/17/跟我学SPI之SPI详解及实战/</id>
     <published>2019-04-17T05:55:51.000Z</published>
-    <updated>2019-04-17T06:39:23.293Z</updated>
+    <updated>2019-04-17T06:56:45.240Z</updated>
     
     <content type="html"><![CDATA[<p>首先了解下何为SPI，这里引用Dubbo官方对SPI的解说，比较全面。<a href="http://dubbo.apache.org/zh-cn/docs/source_code_guide/dubbo-spi.html" target="_blank" rel="external">SPI简介</a></p>
 <blockquote>
@@ -153,6 +153,14 @@ System.out.println(&quot;         战斗机服务实例调用结束：&quot;  + 
 Process finished with exit code 0
 </code></pre><p>可以看到，调用达到预期，通过SPI的ServiceLoader，我们实现了一种更加优雅的工厂模式。</p>
 <p>之所以说优雅，就在于我们能够通过只编写接口实现类并在META-INF/services下的接口定义文件中配置实现类的全限定名，就可以按需获取不同的接口实例。这种方式在大量的接口实现类场景下优势很明显，我们不需要实现包扫描以及实例的加载，避免了重复造轮子，而且借助SPI方式，实现更加稳定美观。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>实际上，SPI本质上是面向接口编程的一种体现，中间件厂商通过SPI能够实现插件的可插拔。它的优势在于在模块装配的时候不需要显式的指定实现而能够动态的寻找到服务实现，有点像IOC的机制。业务不需要关系服务装配，将服务装配的控制权反转给了框架本身。</p>
+<p>最后再总结一下SPI的开发流程: </p>
+<ol>
+<li>服务提供者需要提供服务接口的声明</li>
+<li>服务提供者在jar包META-INF/services/目录里创建一个以服务接口命名的文件</li>
+<li>服务实现方实现服务提供者发布的接口，并在META-INF/services/目录里以服务接口命名的文件中添加该实现的全限定名。</li>
+<li>外部程序装配该模块时，通过jar包META-INF/services/里的配置文件就可以找到具体的实现类名，java.util.ServiceLoader将接口实现装载并实例化从而完成模块的注入。且该实例过程对于调用方是透明的，</li>
+</ol>
 ]]></content>
     
     <summary type="html">
