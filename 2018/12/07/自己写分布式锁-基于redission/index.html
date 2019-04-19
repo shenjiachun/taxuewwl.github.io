@@ -17,7 +17,7 @@
 <meta property="og:url" content="http://wuwenliang.net/2018/12/07/自己写分布式锁-基于redission/index.html">
 <meta property="og:site_name" content="朝·闻·道">
 <meta property="og:description" content="之前的文章中，我们利用Redis实现了分布式限流组件，文章链接：自己写分布式限流组件-基于Redis的RateLimter ，不得不感叹Redis功能的强大，本文中我们继续利用Redis的特性，基于Redission组件，实现一款能注解支持的可靠分布式锁组件。">
-<meta property="og:updated_time" content="2018-12-08T14:15:18.000Z">
+<meta property="og:updated_time" content="2019-04-19T02:37:17.010Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="自己写分布式锁--基于redission">
 <meta name="twitter:description" content="之前的文章中，我们利用Redis实现了分布式限流组件，文章链接：自己写分布式限流组件-基于Redis的RateLimter ，不得不感叹Redis功能的强大，本文中我们继续利用Redis的特性，基于Redission组件，实现一款能注解支持的可靠分布式锁组件。">
@@ -136,15 +136,25 @@
 <li>首先保证当前工程为一个springboot项目，然后添加starter的坐标依赖。（需要下载源码在本地构建，并执行<strong>mvn clean install -DskipTests</strong>） </li>
 </ol>
 <p>坐标为：</p>
+<blockquote>
+<p>当前最新版为1.2.0 截止到2019.4.19</p>
+</blockquote>
 <pre><code>&lt;!--分布式锁redisson版本--&gt;
 &lt;dependency&gt;
     &lt;groupId&gt;com.snowalker&lt;/groupId&gt;
     &lt;artifactId&gt;redis-distributed-lock-starter&lt;/artifactId&gt;
-    &lt;version&gt;1.0.0&lt;/version&gt;
+    &lt;version&gt;1.2.0&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre><ol>
-<li><p>在项目的application.properties中增加redis连接配置，这里以单机模式为例。目前支持单机、集群、哨兵、主从等全部的链接方式，总有适合你的一个。</p>
-<pre><code>redisson.lock.server.address=127.0.0.1:6379
+<li><p>在项目的application.properties中增加redis连接配置，这里以单机模式为例。目前支持单机、集群、哨兵、主从等全部的链接方式，总有适合你的一个。注意配置密码及需要使用的数据库，密码如果没有默认为空</p>
+<pre><code>########################################################################
+#
+#     redisson配置
+#
+#########################################################################
+redisson.lock.server.address=127.0.0.1:6379
+redisson.lock.server.password=
+redisson.lock.server.database=1
 redisson.lock.server.type=standalone
 </code></pre></li>
 <li><p>有两种调用方式，一种是直接java代码编程方式调用，一种是注解支持。</p>
