@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-17T07:37:19.169Z</updated>
+  <updated>2019-04-24T01:16:10.362Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://wuwenliang.net/2019/04/17/%E8%B7%9F%E6%88%91%E5%AD%A6SPI%E4%B9%8BSPI%E8%AF%A6%E8%A7%A3%E5%8F%8A%E5%AE%9E%E6%88%98/"/>
     <id>http://wuwenliang.net/2019/04/17/跟我学SPI之SPI详解及实战/</id>
     <published>2019-04-17T05:55:51.000Z</published>
-    <updated>2019-04-17T07:37:19.169Z</updated>
+    <updated>2019-04-24T01:16:10.362Z</updated>
     
     <content type="html"><![CDATA[<p>首先了解下何为SPI，这里引用Dubbo官方对SPI的解说，比较全面。<a href="http://dubbo.apache.org/zh-cn/docs/source_code_guide/dubbo-spi.html" target="_blank" rel="external">SPI简介</a></p>
 <blockquote>
@@ -83,7 +83,7 @@
     private static final Map&lt;String, DemoInterface&gt; serviveContext =
             new ConcurrentHashMap&lt;&gt;();
 
-    private static DemoServiceFactory factory = null;
+    private static final DemoServiceFactory factory = null;
 
     private DemoServiceFactory() {
         ServiceLoader&lt;DemoInterface&gt; serviceLoaders =
