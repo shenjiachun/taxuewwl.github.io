@@ -26,7 +26,7 @@
 <meta property="og:image" content="http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft4.png">
 <meta property="og:image" content="http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft5.png">
 <meta property="og:image" content="http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft6.png">
-<meta property="og:updated_time" content="2019-05-13T08:35:07.318Z">
+<meta property="og:updated_time" content="2019-05-13T08:41:29.683Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="我说分布式之Gossip协议与Raft算法概览">
 <meta name="twitter:description" content="如果说分布式领域是一片蓝海，那各种分布式一致性算法就是其中闪耀的明珠。
@@ -121,6 +121,7 @@
 <p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/./gossip.png" alt="Gossip拓扑"></p>
 <p>图中的每个节点均为运行着Gossip协议的Agent，包括服务器节点与普通节点，他们均加入了此Gossip集群并收发Gossip消息。</p>
 <p>每经过一段固定的时间，每个节点都会随机选取几个与它保持连接的若干节点发送Gossip消息，与此同时，其他节点也会选择与自己保持连接的几个节点进行消息的传递。如此经过一点时间之后，整个集群都收到了这条Gossip消息，从而达到最终一致。</p>
+<p><strong>注意</strong>  每次消息传递都会选择 <strong>尚未发送过的节点</strong> 进行散播，即收到消息的节点不会再往发送的节点散播，eg:A-&gt;B, 则当B进行散播的时候，不会再发送给A。</p>
 <p>这样做的好处是当集群中的节点总量增加，分摊到每个节点的压力基本是稳定的，在一致性时间窗的忍耐限度内，整个集群的规模可以达到数千节点。</p>
 <p>Gossip已经落地的产品包括但不限于Consul、Cassandra。其中Consul主要使用Gossip做为集群成员管理及消息广播的主要手段。Consul的Agent之间通过Gossip协议进行状态检查，通过节点之间互ping而减轻了作为server的节点的压力。如果有节点down机，任意与其保持连接的节点发现即可通过Gossip广播给整个集群。当该down机的节点重启后重新加入集群，一段时间后，它的状态也能够通过Gossip协议与其他的节点达成一致，这体现出Gossip协议具有的天然的分布式容错的特点。</p>
 <blockquote>
