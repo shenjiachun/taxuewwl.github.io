@@ -23,7 +23,7 @@ RocketMQ的事务消息是目前主流的MQ中唯一支持分布式事务的解�
 关于RocketMQ的事务消息的机制，我在之前的一篇文章中已经做过讲解，文章地址 我说分布式事务之消息一致性事务2-rocketmq的实现
 RocketMQ的事务消息是目前主流的MQ中唯一支持分布式事务的解决方案，也是众多最终一致性方案中较为成熟的。
 本文中，我将带领大家了解并运用Transact">
-<meta property="og:updated_time" content="2019-01-23T09:14:06.865Z">
+<meta property="og:updated_time" content="2019-05-13T03:53:12.602Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="跟我学RocketMQ[1-5]之发送事务消息实现分布式事务及封装TransactionMQProducer支持spring">
 <meta name="twitter:description" content="这里先说点儿私货，为什么在众多的MQ中，我尤其看好RocketMQ，主要的原因之一就是它的事务消息。
@@ -103,7 +103,7 @@ RocketMQ的事务消息是目前主流的MQ中唯一支持分布式事务的解�
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#发送事务消息"><span class="toc-number">1.</span> <span class="toc-text">发送事务消息</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#创建消息生产者"><span class="toc-number">1.1.</span> <span class="toc-text">创建消息生产者</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现TransactionListener接口"><span class="toc-number">1.2.</span> <span class="toc-text">实现TransactionListener接口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封装TransactionMQProducer整合spring"><span class="toc-number">2.</span> <span class="toc-text">封装TransactionMQProducer整合spring</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RocketMQTransactionProducerAgent使用案例"><span class="toc-number">3.</span> <span class="toc-text">RocketMQTransactionProducerAgent使用案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#发送事务消息"><span class="toc-number">1.</span> <span class="toc-text">发送事务消息</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#创建消息生产者"><span class="toc-number">1.1.</span> <span class="toc-text">创建消息生产者</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现TransactionListener接口"><span class="toc-number">1.2.</span> <span class="toc-text">实现TransactionListener接口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封装TransactionMQProducer整合spring"><span class="toc-number">2.</span> <span class="toc-text">封装TransactionMQProducer整合spring</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RocketMQTransactionProducerAgent使用案例"><span class="toc-number">3.</span> <span class="toc-text">RocketMQTransactionProducerAgent使用案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PS-RocketMQ事务消息再复盘"><span class="toc-number">5.</span> <span class="toc-text">PS: RocketMQ事务消息再复盘</span></a></li></ol>
 		
 		</div>
 		
@@ -317,7 +317,8 @@ void init() throws Exception {
 }
 </code></pre><h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文的核心还是在于讲解如何使用RocketMQ的API完成事务消息的发送，以及如何对其进行封装，使开发更加便捷。</p>
 <p>只要理解了RocketMQ事务消息机理，相信聪明的你会很容易上手代码开发，所以这里我还是建议学习一门新技术，不要仅仅满足于会调用API，关键还是要理解原理，举一反三，相信你一定可以以不变应万变。</p>
-<blockquote>
+<h2 id="PS-RocketMQ事务消息再复盘"><a href="#PS-RocketMQ事务消息再复盘" class="headerlink" title="PS: RocketMQ事务消息再复盘"></a>PS: RocketMQ事务消息再复盘</h2><blockquote>
+<p>RocketMQ的事务消息基于两阶段提交和事务状态回查机制来实现，所谓的两阶段提交，即首先发送Prepare消息，待事务提交或回滚时发送commit、rollback命令。<br>再结合定时任务，RocketMQ使用专门的线程以特定的频率对RocketMQ服务器上的Prepare消息进行处理，向发送端查询事务消息的状态来决定是否提交或者回滚消息。 –引自《RocketMQ技术内幕 8.5》</p>
 <p>子曰：不愤不启，不悱不发。举一隅不以三隅反，则不复也。</p>
 </blockquote>
   
@@ -388,7 +389,7 @@ void init() throws Exception {
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#发送事务消息"><span class="toc-number">1.</span> <span class="toc-text">发送事务消息</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#创建消息生产者"><span class="toc-number">1.1.</span> <span class="toc-text">创建消息生产者</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现TransactionListener接口"><span class="toc-number">1.2.</span> <span class="toc-text">实现TransactionListener接口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封装TransactionMQProducer整合spring"><span class="toc-number">2.</span> <span class="toc-text">封装TransactionMQProducer整合spring</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RocketMQTransactionProducerAgent使用案例"><span class="toc-number">3.</span> <span class="toc-text">RocketMQTransactionProducerAgent使用案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#发送事务消息"><span class="toc-number">1.</span> <span class="toc-text">发送事务消息</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#创建消息生产者"><span class="toc-number">1.1.</span> <span class="toc-text">创建消息生产者</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实现TransactionListener接口"><span class="toc-number">1.2.</span> <span class="toc-text">实现TransactionListener接口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封装TransactionMQProducer整合spring"><span class="toc-number">2.</span> <span class="toc-text">封装TransactionMQProducer整合spring</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RocketMQTransactionProducerAgent使用案例"><span class="toc-number">3.</span> <span class="toc-text">RocketMQTransactionProducerAgent使用案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PS-RocketMQ事务消息再复盘"><span class="toc-number">5.</span> <span class="toc-text">PS: RocketMQ事务消息再复盘</span></a></li></ol>
  
   </div>
 
