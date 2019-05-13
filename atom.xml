@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-04-24T01:16:10.362Z</updated>
+  <updated>2019-05-13T08:18:13.786Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,81 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>我说分布式之Gossip协议与Raft算法概览</title>
+    <link href="http://wuwenliang.net/2019/05/13/%E6%88%91%E8%AF%B4%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8BGossip%E5%8D%8F%E8%AE%AE%E4%B8%8ERaft%E7%AE%97%E6%B3%95%E6%A6%82%E8%A7%88/"/>
+    <id>http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/</id>
+    <published>2019-05-13T07:16:07.000Z</published>
+    <updated>2019-05-13T08:18:13.786Z</updated>
+    
+    <content type="html"><![CDATA[<p>如果说分布式领域是一片蓝海，那各种分布式一致性算法就是其中闪耀的明珠。</p>
+<p>本文中，我将着重介绍两个有趣且应用广泛的分布式一致性算法，Gossip协议与Raft算法。</p>
+<a id="more"></a>
+<h2 id="Gossip协议"><a href="#Gossip协议" class="headerlink" title="Gossip协议"></a>Gossip协议</h2><p>首先介绍一下Gossip协议，它的通俗解释如下：</p>
+<blockquote>
+<p>Gossip protocol 也叫 Epidemic Protocol （流行病协议），它还有很多别名，如：“谣言算法”、“疫情传播算法”等。</p>
+</blockquote>
+<p>这个协议的作用就像其名字表示的意思一样容易理解，它的运行方式在我们日常生活中也很常见，如疾病致病病菌的传播，森林大火扩散等。</p>
+<p>Gossip协议的思想比较有趣，它的集群拓扑是去中心化的，如下图所示，是一个抽象的Gossip集群拓扑。</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/./gossip.png" alt="Gossip拓扑"></p>
+<p>图中的每个节点均为运行着Gossip协议的Agent，包括服务器节点与普通节点，他们均加入了此Gossip集群并收发Gossip消息。</p>
+<p>每经过一段固定的时间，每个节点都会随机选取几个与它保持连接的若干节点发送Gossip消息，与此同时，其他节点也会选择与自己保持连接的几个节点进行消息的传递。如此经过一点时间之后，整个集群都收到了这条Gossip消息，从而达到最终一致。</p>
+<p>这样做的好处是当集群中的节点总量增加，分摊到每个节点的压力基本是稳定的，在一致性时间窗的忍耐限度内，整个集群的规模可以达到数千节点。</p>
+<p>Gossip已经落地的产品包括但不限于Consul、Cassandra。其中Consul主要使用Gossip做为集群成员管理及消息广播的主要手段。Consul的Agent之间通过Gossip协议进行状态检查，通过节点之间互ping而减轻了作为server的节点的压力。如果有节点down机，任意与其保持连接的节点发现即可通过Gossip广播给整个集群。当该down机的节点重启后重新加入集群，一段时间后，它的状态也能够通过Gossip协议与其他的节点达成一致，这体现出Gossip协议具有的天然的分布式容错的特点。</p>
+<blockquote>
+<p>Gossip算法又被称为反熵（Anti-Entropy），表示在杂乱无章中寻求一致，这充分说明了Gossip的特点：在一个有界网络中，每个节点都随机地与其他节点通信，经过一番杂乱无章的通信，最终所有节点的状态都会达成一致。每个节点可能知道所有其他节点，也可能仅知道几个邻居节点，只要这些节可以通过网络连通，最终他们的状态都是一致的，当然这也是疫情传播的特点。</p>
+</blockquote>
+<h2 id="Raft算法"><a href="#Raft算法" class="headerlink" title="Raft算法"></a>Raft算法</h2><p>接着了解下Raft算法，度娘如此介绍：</p>
+<blockquote>
+<p>Raft是一种共识算法，旨在替代Paxos。 它通过逻辑分离比Paxos更容易理解，但它也被正式证明是安全的，并提供了一些额外的功能。[1] Raft提供了一种在计算系统集群中分布状态机的通用方法，确保集群中的每个节点都同意一系列相同的状态转换。 </p>
+<p>Raft通过当选的领导者达成共识。筏集群中的服务器是领导者或追随者，并且在选举的精确情况下可以是候选者（领导者不可用）。领导者负责将日志复制到关注者。它通过发送心跳消息定期通知追随者它的存在。每个跟随者都有一个超时（通常在150到300毫秒之间），它期望领导者的心跳。接收心跳时重置超时。如果没有收到心跳，则关注者将其状态更改为候选人并开始领导选举。</p>
+</blockquote>
+<p>Raft算法的主要包含如下要点：</p>
+<ol>
+<li>leader选取</li>
+<li>日志复制</li>
+<li>安全</li>
+</ol>
+<p>我们主要介绍leader选举以及日志复制，安全相关的内容本文不做展开讲解。</p>
+<h3 id="Raft流程"><a href="#Raft流程" class="headerlink" title="Raft流程"></a>Raft流程</h3><p>首先，需要明确一个概念：</p>
+<blockquote>
+<p>raft 集群中的每个节点都可以根据集群运行的情况在三种状态间切换：follower（从节点）, candidate（候选者节点） 与 leader（主节点）。</p>
+</blockquote>
+<p>它们的职责描述如下：</p>
+<h4 id="leader节点"><a href="#leader节点" class="headerlink" title="leader节点"></a>leader节点</h4><p>leader节点向follower节点进行日志同步</p>
+<h4 id="follower节点"><a href="#follower节点" class="headerlink" title="follower节点"></a>follower节点</h4><p>follower节点只能从leader节点获取日志。</p>
+<p>我们将通过一系列的拓扑图介绍下Raft协议是如何运行的。</p>
+<h4 id="Raft基本流程"><a href="#Raft基本流程" class="headerlink" title="Raft基本流程"></a>Raft基本流程</h4><p>正常情况下，leader节点定时向follower节点发送heartbeat心跳包。</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft1.png" alt="集群稳定状态,leader发送心跳给follower"></p>
+<p>由于某些异常情况发生，leader不再发送心跳包，或者因为网络超时，导致follower无法收到心跳包。如下</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft2.png" alt="leader与follower之间心跳断开"></p>
+<p>此时，如果在一个时间周期（election timeout），follower没有收到来自leader的心跳包，则节点将会发起leader选举。</p>
+<p>某个节点发生election timeout，节点的 raft 状态机将自己的状态变更为candidate（候选者），并向其余的follower发起投票。</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft3.png" alt="某个follower转变为candidate并发起投票请求"></p>
+<p>当该候选节点收到了集群中超过半数的节点的接受投票响应后，该候选节点成为leader节点，并开始接受并保存client的数据对外提供服务，并向其余的follower节点同步日志。它作为leader节点同时还会向其余的存活的follower节点发送heartbeat心跳包来保持其leader地位。</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft4.png" alt="candidate接受投票成为leader节点"></p>
+<p>当经过一点时间后，原先的leader重启并重新加入到集群中，此时需要比较两个leader的步进数，步进数低的那个leader将切换为follower节点（此处即为重启恢复的那个leader）<br>：</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft5.png" alt="原先的leader再次加入节点，比较步进数成为follower节点"></p>
+<p>此时leader节点已经变更，因此之前的那个leader节点（此时已经是follower）中的日志将会被清理，并作为follower接受当前leader的日志同步，从而保持一致。</p>
+<p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft6.png" alt="原先的leader再次加入节点，日志同步，保持心跳"></p>
+<h2 id="小结复盘"><a href="#小结复盘" class="headerlink" title="小结复盘"></a>小结复盘</h2><p>关于Gossip协议，我们需要了解最终一致的达成过程，同时我们需要知道当前已落地的应用为Cassandra缓存中间件、Consul等。</p>
+<p>关于Raft，我们要明确两个要素: 选主以及日志复制，目前落地Raft协议的中间件有：Etcd、consul等。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;如果说分布式领域是一片蓝海，那各种分布式一致性算法就是其中闪耀的明珠。&lt;/p&gt;
+&lt;p&gt;本文中，我将着重介绍两个有趣且应用广泛的分布式一致性算法，Gossip协议与Raft算法。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="专题-分布式" scheme="http://wuwenliang.net/categories/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
+    
+    
+      <category term="专题-分布式" scheme="http://wuwenliang.net/tags/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
+    
+  </entry>
   
   <entry>
     <title>跟我学SPI之SPI详解及实战</title>
@@ -4867,68 +4942,6 @@ and manual loading of the driver class is generally unnecessary.
       &lt;p&gt;最近使用springboot2.x访问mysql数据库时，报错 &lt;strong&gt;java.sql.SQLException: The server time zone value ‘ÖÐ¹ú±ê×¼Ê±¼ä’ is unrecognized…&lt;/strong&gt; &lt;/p&gt;
 &lt;p&gt;详情可以查看上一篇文章 &lt;a href=&quot;http://wuwenliang.net/2019/02/17/%E8%A7%A3%E5%86%B3JDBC%E8%BF%9E%E6%8E%A5%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%A5%E9%94%99java-sql-SQLException-The-server-time-zone-value-is-unrecognized%E7%9A%84%E9%97%AE%E9%A2%98/&quot;&gt;解决JDBC连接数据库报错java.sql.SQLException: The server time zone value is unrecognized的问题&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;问题的根本原因在于mysql驱动的版本问题。不同版本的驱动使用的驱动类是不同的，具体如下：&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="mysql" scheme="http://wuwenliang.net/categories/mysql/"/>
-    
-    
-      <category term="mysql" scheme="http://wuwenliang.net/tags/mysql/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>解决JDBC连接数据库报错java.sql.SQLException: The server time zone value is unrecognized的问题</title>
-    <link href="http://wuwenliang.net/2019/02/17/%E8%A7%A3%E5%86%B3JDBC%E8%BF%9E%E6%8E%A5%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%A5%E9%94%99java-sql-SQLException-The-server-time-zone-value-is-unrecognized%E7%9A%84%E9%97%AE%E9%A2%98/"/>
-    <id>http://wuwenliang.net/2019/02/17/解决JDBC连接数据库报错java-sql-SQLException-The-server-time-zone-value-is-unrecognized的问题/</id>
-    <published>2019-02-17T11:39:41.000Z</published>
-    <updated>2019-02-19T02:46:23.525Z</updated>
-    
-    <content type="html"><![CDATA[<p>今天在使用mybatis建立到数据库的连接时，出现了一个时区报错。<strong>java.sql.SQLException: The server time zone value ‘ÖÐ¹ú±ê×¼Ê±¼ä’ is unrecognized…</strong><br>这也是第一次遇到，感觉挺有意思的，写篇博客记录下。</p>
-<p>报错如下：</p>
-<pre><code>java.sql.SQLException: The server time zone value &apos;ÖÐ¹ú±ê×¼Ê±¼ä&apos; 
-is unrecognized or represents more than one time zone. 
-You must configure either the server or JDBC driver (via the serverTimezone configuration property)
-to use a more specifc time zone value 
-if you want to utilize time zone support.
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:127)
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:95)
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:87)
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:61)
-</code></pre><a id="more"></a>
-<p>简单的理解下，它就是说我本地有不止一个时区，必须配置一个确定的时区才能使用时间支持。</p>
-<p>查询资料得知，只需要在jdbc连接串后拼接时区代码指定当前时区为东八区即可，代码如下：</p>
-<pre><code>?serverTimezone=GMT%2B8
-</code></pre><p>比如，初始连接串为：</p>
-<pre><code>jdbc:mysql://127.0.0.1:3306/test?useUnicode=true
-&amp;characterEncoding=utf-8
-&amp;useSSL=false
-</code></pre><p>添加时区后的完整串为：</p>
-<pre><code>jdbc:mysql://127.0.0.1:3306/test?useUnicode=true
-&amp;characterEncoding=utf-8
-&amp;useSSL=false
-&amp;serverTimezone=GMT%2B8
-</code></pre><p>这么做就可以解决该报错。</p>
-<p>PS：还有个方法就是直接修改数据库的时区配置，具体方法为执行下面的语句:</p>
-<pre><code>show variables like &apos;%time_zone%&apos;
-set global time_zone=&apos;+8:00&apos;;
-</code></pre><p>这样修改之后就不会报时区错误了。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;今天在使用mybatis建立到数据库的连接时，出现了一个时区报错。&lt;strong&gt;java.sql.SQLException: The server time zone value ‘ÖÐ¹ú±ê×¼Ê±¼ä’ is unrecognized…&lt;/strong&gt;&lt;br&gt;这也是第一次遇到，感觉挺有意思的，写篇博客记录下。&lt;/p&gt;
-&lt;p&gt;报错如下：&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;java.sql.SQLException: The server time zone value &amp;apos;ÖÐ¹ú±ê×¼Ê±¼ä&amp;apos; 
-is unrecognized or represents more than one time zone. 
-You must configure either the server or JDBC driver (via the serverTimezone configuration property)
-to use a more specifc time zone value 
-if you want to utilize time zone support.
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:127)
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:95)
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:87)
-    at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:61)
-&lt;/code&gt;&lt;/pre&gt;
     
     </summary>
     
