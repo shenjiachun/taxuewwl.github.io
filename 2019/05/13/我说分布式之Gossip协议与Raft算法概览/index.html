@@ -26,7 +26,7 @@
 <meta property="og:image" content="http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft4.png">
 <meta property="og:image" content="http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft5.png">
 <meta property="og:image" content="http://wuwenliang.net/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft6.png">
-<meta property="og:updated_time" content="2019-05-13T08:18:13.786Z">
+<meta property="og:updated_time" content="2019-05-13T08:20:21.904Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="我说分布式之Gossip协议与Raft算法概览">
 <meta name="twitter:description" content="如果说分布式领域是一片蓝海，那各种分布式一致性算法就是其中闪耀的明珠。
@@ -105,7 +105,7 @@
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Gossip协议"><span class="toc-number">1.</span> <span class="toc-text">Gossip协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Raft算法"><span class="toc-number">2.</span> <span class="toc-text">Raft算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Raft流程"><span class="toc-number">2.1.</span> <span class="toc-text">Raft流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#leader节点"><span class="toc-number">2.1.1.</span> <span class="toc-text">leader节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#follower节点"><span class="toc-number">2.1.2.</span> <span class="toc-text">follower节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Raft基本流程"><span class="toc-number">2.1.3.</span> <span class="toc-text">Raft基本流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结复盘"><span class="toc-number">3.</span> <span class="toc-text">小结复盘</span></a></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Gossip协议"><span class="toc-number">1.</span> <span class="toc-text">Gossip协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Raft算法"><span class="toc-number">2.</span> <span class="toc-text">Raft算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Raft流程"><span class="toc-number">2.1.</span> <span class="toc-text">Raft流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#leader节点"><span class="toc-number">2.1.1.</span> <span class="toc-text">leader节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#follower节点"><span class="toc-number">2.1.2.</span> <span class="toc-text">follower节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Raft基本流程"><span class="toc-number">2.1.3.</span> <span class="toc-text">Raft基本流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结复盘"><span class="toc-number">3.</span> <span class="toc-text">小结复盘</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考链接"><span class="toc-number">4.</span> <span class="toc-text">参考链接</span></a></li></ol>
 		
 		</div>
 		
@@ -161,6 +161,8 @@
 <p><img src="/2019/05/13/我说分布式之Gossip协议与Raft算法概览/raft6.png" alt="原先的leader再次加入节点，日志同步，保持心跳"></p>
 <h2 id="小结复盘"><a href="#小结复盘" class="headerlink" title="小结复盘"></a>小结复盘</h2><p>关于Gossip协议，我们需要了解最终一致的达成过程，同时我们需要知道当前已落地的应用为Cassandra缓存中间件、Consul等。</p>
 <p>关于Raft，我们要明确两个要素: 选主以及日志复制，目前落地Raft协议的中间件有：Etcd、consul等。</p>
+<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="https://www.cnblogs.com/williamjie/p/9369795.html" target="_blank" rel="external">Consul实现原理系列文章2: 用Gossip来做集群成员管理和消息广播</a></p>
+<p><a href="https://www.jianshu.com/p/8e4bbe7e276c" target="_blank" rel="external">共识算法：Raft</a></p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -221,7 +223,7 @@
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Gossip协议"><span class="toc-number">1.</span> <span class="toc-text">Gossip协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Raft算法"><span class="toc-number">2.</span> <span class="toc-text">Raft算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Raft流程"><span class="toc-number">2.1.</span> <span class="toc-text">Raft流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#leader节点"><span class="toc-number">2.1.1.</span> <span class="toc-text">leader节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#follower节点"><span class="toc-number">2.1.2.</span> <span class="toc-text">follower节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Raft基本流程"><span class="toc-number">2.1.3.</span> <span class="toc-text">Raft基本流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结复盘"><span class="toc-number">3.</span> <span class="toc-text">小结复盘</span></a></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Gossip协议"><span class="toc-number">1.</span> <span class="toc-text">Gossip协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Raft算法"><span class="toc-number">2.</span> <span class="toc-text">Raft算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Raft流程"><span class="toc-number">2.1.</span> <span class="toc-text">Raft流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#leader节点"><span class="toc-number">2.1.1.</span> <span class="toc-text">leader节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#follower节点"><span class="toc-number">2.1.2.</span> <span class="toc-text">follower节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Raft基本流程"><span class="toc-number">2.1.3.</span> <span class="toc-text">Raft基本流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结复盘"><span class="toc-number">3.</span> <span class="toc-text">小结复盘</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考链接"><span class="toc-number">4.</span> <span class="toc-text">参考链接</span></a></li></ol>
  
   </div>
 
