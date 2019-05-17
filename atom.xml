@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-05-17T03:32:03.089Z</updated>
+  <updated>2019-05-17T03:55:43.007Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,67 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title></title>
+    <link href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E9%AB%98%E5%90%9E%E5%90%90%E4%BD%8E%E5%BB%B6%E6%97%B6%E7%AD%96%E7%95%A5/"/>
+    <id>http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/</id>
+    <published>2019-05-17T03:41:09.870Z</published>
+    <updated>2019-05-17T03:55:43.007Z</updated>
+    
+    <content type="html"><![CDATA[<hr>
+<p>title: 研磨消息中间件kafka之高吞吐低延时策略<br>date: 2019-05-17 11:41:09<br>categories: 研磨系列<br>tags: 研磨系列</p>
+<h2 id="keywords-研磨系列"><a href="#keywords-研磨系列" class="headerlink" title="keywords: 研磨系列"></a>keywords: 研磨系列</h2><blockquote>
+<p>提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。</p>
+</blockquote>
+<h3 id="消息顺序写"><a href="#消息顺序写" class="headerlink" title="消息顺序写"></a>消息顺序写</h3><p>Kafka的消息存储在每次写入时，只是将数据写入到操作系统的页缓存（PageCache）中，最终是由操作系统决定何时将页缓存中的数据落盘的。这样做的好处如下：</p>
+<ol>
+<li>由于页缓存是OS在内存中分配的，因此消息写入速度很快；</li>
+<li>由于Kafka将消息写入页缓存中，因此避免了直接与底层文件系统打交道时候的繁琐流程，所有的I/O操作均交给了操作系统进行处理；</li>
+<li>Kafka写操作采用了append方式（即：追加写入），这种顺序写盘的方式速度很快，避免了因随机写而导致的写入效率低下。</li>
+</ol>
+<a id="more"></a>
+<p>对于上述的第三点，着重进行解析：</p>
+<p>对于机械硬盘而言，对数据进行随机读写的吞吐量往往是很低的，但如果读写是顺序的，则速度很快，其顺序读写的速度甚至接近内存的随机I/O。而Kafka正是因此而采用了append方式进行消息的写入。</p>
+<p>即：只在日志文件的末尾追加写入新消息，同时对于已经写入的消息，不允许进行修改。</p>
+<p>正因为Kafka采用的是磁盘顺序访问方式，所以其消息发送的吞吐量很高，实际使用中达到每秒写入数万到数十万条消息是很轻松的。</p>
+<h3 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h3><p>Kafka对消息读取时，首先尝试从OS的pageCache中读取，读取成功则将消息通过页缓存直接发送到网络的Socket上。该过程利用了Linux平台上的sendfile系统调用实现，该技术的核心原理便是零拷贝（Zero Copy）。</p>
+<p>零拷贝的原理示意图如下:</p>
+<p><img src="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png" alt="零拷贝图示"></p>
+<h4 id="详解零拷贝"><a href="#详解零拷贝" class="headerlink" title="详解零拷贝"></a>详解零拷贝</h4><p>接下来对该图做一个较为详细的讲解：</p>
+<p>传统Linux操作系统在进行I/O操作时是通过数据的复制（或者说拷贝）实现的，在零拷贝技术出现之前，一个I/O操作会对数据进行多次拷贝，该过程涉及到内核态与用户态的上下文切换，对于CPU的压力较大，无法做到高效率的进行数据的传输。</p>
+<p>而零拷贝就是为改善该问题而存在的，当内核驱动程序通过I/O处理数据(如：从磁盘中读取文件)时，不需要进行上下文切换，即：无需将数据从内核缓冲区（PageCache）复制到应用程序内存（即用户态），而是直接在内核空间中从内核缓冲区拷贝到Socket缓冲区。节省了内核缓冲区与用户态应用程序内存之间的数据拷贝，</p>
+<p>实际上，内核缓冲区与Socket缓冲区之间并没有真正的做数据拷贝操作，而是做了地址映射，当底层网卡驱动要读取数据并发送到网络的时候，看起来好像是读取了Socket缓冲区的数据，实际上是直接读取了内核缓冲区的数据，数据实际上只有一份，而这是利用了DMA（Direct Memeory Access，直接内存存储器访问技术）实现的，通过DMA进行I/O操作，不仅避免了内核缓冲区与用户缓冲区的数据拷贝，还减少了内核缓冲区与socket缓冲区间的数据拷贝，因此得名“零拷贝”。</p>
+<h4 id="Kafka的应用"><a href="#Kafka的应用" class="headerlink" title="Kafka的应用"></a>Kafka的应用</h4><p>Kafka消息消费机制使用的是Linux提供的sendfile系统调用实现的零拷贝技术，进一步说是通过Java的FileChannel.transferTo来实现的。</p>
+<h3 id="页缓存"><a href="#页缓存" class="headerlink" title="页缓存"></a>页缓存</h3><p>Kafka大量使用了操作系统的页缓存，当读取消息时，由于大量的消息保存在页缓存中，因此读取消息能够直接命中缓存而不必穿透到底层的物理磁盘中获取消息，这极大的提升了消息读取的吞吐量。</p>
+<p>在经过良好的系统调优的Kafka集群中，对于存在较明显负载的Broker机器而言，对物理磁盘的读操作也是很少的，这正是因为消息读取操作很大程度上是直接命中了页缓存而未到达物理磁盘。</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>Kafka之所以能够表现出高吞吐、低延时的良好性能，主要依托本文提到的要点进行了设计：</p>
+<ol>
+<li>大量地使用OS的页缓存进行操作，减少I/O性能消耗</li>
+<li>Kafka本身不进行物理I/O操作，而是利用了OS进行I/O操作</li>
+<li>消息写入采用了追加写入的方式，避免了对磁盘的随机读写，从而极大的提高了写入的效率</li>
+<li>采用“零拷贝”技术，极大的提升了网络传输效率。</li>
+</ol>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;hr&gt;
+&lt;p&gt;title: 研磨消息中间件kafka之高吞吐低延时策略&lt;br&gt;date: 2019-05-17 11:41:09&lt;br&gt;categories: 研磨系列&lt;br&gt;tags: 研磨系列&lt;/p&gt;
+&lt;h2 id=&quot;keywords-研磨系列&quot;&gt;&lt;a href=&quot;#keywords-研磨系列&quot; class=&quot;headerlink&quot; title=&quot;keywords: 研磨系列&quot;&gt;&lt;/a&gt;keywords: 研磨系列&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&quot;消息顺序写&quot;&gt;&lt;a href=&quot;#消息顺序写&quot; class=&quot;headerlink&quot; title=&quot;消息顺序写&quot;&gt;&lt;/a&gt;消息顺序写&lt;/h3&gt;&lt;p&gt;Kafka的消息存储在每次写入时，只是将数据写入到操作系统的页缓存（PageCache）中，最终是由操作系统决定何时将页缓存中的数据落盘的。这样做的好处如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;由于页缓存是OS在内存中分配的，因此消息写入速度很快；&lt;/li&gt;
+&lt;li&gt;由于Kafka将消息写入页缓存中，因此避免了直接与底层文件系统打交道时候的繁琐流程，所有的I/O操作均交给了操作系统进行处理；&lt;/li&gt;
+&lt;li&gt;Kafka写操作采用了append方式（即：追加写入），这种顺序写盘的方式速度很快，避免了因随机写而导致的写入效率低下。&lt;/li&gt;
+&lt;/ol&gt;
+    
+    </summary>
+    
+    
+  </entry>
   
   <entry>
     <title>研磨消息中间件kafka之总览</title>
@@ -4862,150 +4923,6 @@ public class OrderApplication {
 &lt;p&gt;通过配置文件的方式更加直观的管理dubbo服务，并对其进行相关的优化操作等。&lt;/p&gt;
 &lt;p&gt;我们选择的springboot框架的版本为2.1.2.RELEASE，选择了dubbo2.6.5作为基础的整合版本，该版本相比更早的2.5.x修复了较多的遗留bug，且对nacos、sentinel等框架的适配度更好。&lt;/p&gt;
 &lt;p&gt;话不多说，进入正题。&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="Dubbo" scheme="http://wuwenliang.net/categories/Dubbo/"/>
-    
-    
-      <category term="Dubbo" scheme="http://wuwenliang.net/tags/Dubbo/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[dubbo]springboot2.x整合dubbo之使用dubbo-spring-boot-starter</title>
-    <link href="http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E4%BD%BF%E7%94%A8dubbo-spring-boot-starter/"/>
-    <id>http://wuwenliang.net/2019/02/20/dubbo-springboot2-x整合dubbo之使用dubbo-spring-boot-starter/</id>
-    <published>2019-02-20T02:37:32.000Z</published>
-    <updated>2019-02-20T05:59:24.848Z</updated>
-    
-    <content type="html"><![CDATA[<blockquote>
-<p>本文主要讲解在springboot2.x中，整合官方版本的dubbo-spring-boot-starter实现RPC服务化框架的搭建。</p>
-</blockquote>
-<h2 id="服务提供方"><a href="#服务提供方" class="headerlink" title="服务提供方"></a>服务提供方</h2><p>首先讲解服务提供方的集成过程，我们在IDEA中通过spring-initializr建立一个springboot应用，使用springboot版本为2.1.2.RELEASE</p>
-<h3 id="引入dubbo依赖"><a href="#引入dubbo依赖" class="headerlink" title="引入dubbo依赖"></a>引入dubbo依赖</h3><p>在pom.xml中引入依赖，坐标如下</p>
-<pre><code>&lt;!-- dubbo依赖开始 --&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba.spring.boot&lt;/groupId&gt;
-    &lt;artifactId&gt;dubbo-spring-boot-starter&lt;/artifactId&gt;
-    &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.101tec&lt;/groupId&gt;
-    &lt;artifactId&gt;zkclient&lt;/artifactId&gt;
-    &lt;version&gt;0.10&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;!-- dubbo依赖结束 --&gt;
-</code></pre><p>由于2.0.0版本的&gt;dubbo-spring-boot-starter对应的dubbo版本为2.6.0，因此需要依赖zkclient，后续的高版本使用的zookeeper客户端为apache-curator。<br><a id="more"></a></p>
-<h3 id="编写服务接口"><a href="#编写服务接口" class="headerlink" title="编写服务接口"></a>编写服务接口</h3><p>我们定义一个简单的服务接口用作测试，该接口需要被服务提供方和消费方同时引用，建议将接口及公共的model以及异常等打为一个公共的jar包，供服务提供方和消费方引用，</p>
-<pre><code>public interface HelloService {
-
-    /**
-    * @param message
-    * @return
-    */
-    String sayHello(String message);
-}
-</code></pre><h3 id="编写服务实现类"><a href="#编写服务实现类" class="headerlink" title="编写服务实现类"></a>编写服务实现类</h3><p>在服务提供方中编写实现类。HelloServiceImpl，实现HelloService接口，如下，因为主要描述的是整合过程，因此demo很简单，说明问题即可。</p>
-<pre><code>import com.alibaba.dubbo.config.annotation.Service;
-import com.gaoyang.marketing.dev.prototype.dubbo.api.HelloService;
-import org.springframework.stereotype.Component;
-
-@Component
-@Service(interfaceClass = HelloService.class)
-public class HelloServiceImpl implements HelloService {
-    @Override
-    public String sayHello(String message) {
-        return &quot;HELLO:&quot; + message;
-    }
-}
-</code></pre><p>发布一个dubbo服务就是这么简单，只需要将一个spring的bean标注 <strong>@Service</strong> ，注意选择 <strong>import com.alibaba.dubbo.config.annotation.Service</strong></p>
-<p>其中interfaceClass是要发布服务的接口.</p>
-<h3 id="启动类标注开启dubbo自动装配支持"><a href="#启动类标注开启dubbo自动装配支持" class="headerlink" title="启动类标注开启dubbo自动装配支持"></a>启动类标注开启dubbo自动装配支持</h3><p>在入口main方法上标注 <strong>@EnableDubboConfiguration</strong> 即可开启dubbo的自动装配支持。</p>
-<h3 id="配置文件修改"><a href="#配置文件修改" class="headerlink" title="配置文件修改"></a>配置文件修改</h3><p>修改配置文件application.properties，将当前服务标记为一个dubbo服务端，同时添加zookeeper注册中心地址。</p>
-<pre><code>########################################################################
-#
-#     dubbo配置
-#
-#########################################################################
-spring.dubbo.server=true
-spring.dubbo.registry=zookeeper://127.0.0.1
-</code></pre><p>此时，应用已经具备启动条件。只需要在IDEA中右键run即可启动服务，dubbo默认的服务暴露端口为8080</p>
-<h2 id="服务消费方"><a href="#服务消费方" class="headerlink" title="服务消费方"></a>服务消费方</h2><p>接着我们开发服务消费方，并对提供方的接口发起调用</p>
-<h3 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h3><p>同样先在pom.xml中引入依赖，和提供方保持一致即可，不再赘述</p>
-<pre><code>&lt;!-- dubbo依赖开始 --&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba.spring.boot&lt;/groupId&gt;
-    &lt;artifactId&gt;dubbo-spring-boot-starter&lt;/artifactId&gt;
-    &lt;version&gt;2.0.0&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.101tec&lt;/groupId&gt;
-    &lt;artifactId&gt;zkclient&lt;/artifactId&gt;
-    &lt;version&gt;0.10&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;!-- dubbo依赖结束 --&gt;
-</code></pre><h3 id="编写业务类，调用提供方服务"><a href="#编写业务类，调用提供方服务" class="headerlink" title="编写业务类，调用提供方服务"></a>编写业务类，调用提供方服务</h3><p>我们写一个业务类，并在该类中调用提供方的服务。</p>
-<pre><code>@Component
-public class Hello implements HelloService {
-
-    /**
-    *     @Reference
-    *     如果添加interfaceClass = HelloService.class，则按照interfaceClass = HelloService.class
-    *     对应的接口寻找
-    *     如果不添加则按照注解的接口寻找服务
-    */
-    @Reference(interfaceClass = HelloService.class, check = false)
-    private IHelloService iHelloService;
-
-    @Override
-    public String sayHello(String message) {
-        return iHelloService.sayHello(message);
-    }
-}
-</code></pre><p>看起来很简洁，只需要在消费者的业务类中通过 <strong>@Reference(interfaceClass = HelloService.class, check = false)</strong> 引用远程的dubbo服务，<br>便可以像调用本地服务一样调用远程的dubbo服务。最终会在本地生成一个服务的代理，该代理负责发起真正的服务调用。</p>
-<h3 id="启动类标注开启dubbo自动装配支持-1"><a href="#启动类标注开启dubbo自动装配支持-1" class="headerlink" title="启动类标注开启dubbo自动装配支持"></a>启动类标注开启dubbo自动装配支持</h3><p>这一步与服务提供方一致，在入口main方法上标注 <strong>@EnableDubboConfiguration</strong> 即可开启dubbo的自动装配支持。</p>
-<h3 id="修改配置文件"><a href="#修改配置文件" class="headerlink" title="修改配置文件"></a>修改配置文件</h3><p>在服务消费方配置文件application.properties中配置注册中心地址。</p>
-<pre><code>########################################################################
-#
-#     dubbo配置
-#
-#########################################################################
-spring.dubbo.registry=zookeeper://127.0.0.1
-</code></pre><p>如果服务消费者同时也是提供者，则添加配置</p>
-<pre><code>spring.dubbo.server=true
-</code></pre><h3 id="测试服务调用"><a href="#测试服务调用" class="headerlink" title="测试服务调用"></a>测试服务调用</h3><p>这里我们直接在main方法中调用远程服务，具体代码如下</p>
-<pre><code>ApplicationContext context = SpringApplication.run(Application.class, args);
-Hello hello = context.getBean(&quot;hello&quot;, Hello.class);
-String sayHello = hello.sayHello(&quot;SnoWalker&quot;);
-System.out.println(sayHello);
-</code></pre><p>注意服务端一定要启动。</p>
-<p>在消费方服务的控制台可以看到输出如下字样，表明调用成功</p>
-<pre><code>HELLO:SnoWalker
-</code></pre><h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>我们在本次实例中，实现了在springboot2.x中，整合官方版本的dubbo-spring-boot-starter实现RPC服务化框架的搭建，及验证。</p>
-<p>笔者个人建议这种方式可以用在小而精的业务开发中，对于复杂的业务开发，还是建议通过传统的xml方式进行服务的定义与暴露，基于xml的方式要比注解方式更加的灵活。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;blockquote&gt;
-&lt;p&gt;本文主要讲解在springboot2.x中，整合官方版本的dubbo-spring-boot-starter实现RPC服务化框架的搭建。&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;h2 id=&quot;服务提供方&quot;&gt;&lt;a href=&quot;#服务提供方&quot; class=&quot;headerlink&quot; title=&quot;服务提供方&quot;&gt;&lt;/a&gt;服务提供方&lt;/h2&gt;&lt;p&gt;首先讲解服务提供方的集成过程，我们在IDEA中通过spring-initializr建立一个springboot应用，使用springboot版本为2.1.2.RELEASE&lt;/p&gt;
-&lt;h3 id=&quot;引入dubbo依赖&quot;&gt;&lt;a href=&quot;#引入dubbo依赖&quot; class=&quot;headerlink&quot; title=&quot;引入dubbo依赖&quot;&gt;&lt;/a&gt;引入dubbo依赖&lt;/h3&gt;&lt;p&gt;在pom.xml中引入依赖，坐标如下&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;&amp;lt;!-- dubbo依赖开始 --&amp;gt;
-&amp;lt;dependency&amp;gt;
-    &amp;lt;groupId&amp;gt;com.alibaba.spring.boot&amp;lt;/groupId&amp;gt;
-    &amp;lt;artifactId&amp;gt;dubbo-spring-boot-starter&amp;lt;/artifactId&amp;gt;
-    &amp;lt;version&amp;gt;2.0.0&amp;lt;/version&amp;gt;
-&amp;lt;/dependency&amp;gt;
-&amp;lt;dependency&amp;gt;
-    &amp;lt;groupId&amp;gt;com.101tec&amp;lt;/groupId&amp;gt;
-    &amp;lt;artifactId&amp;gt;zkclient&amp;lt;/artifactId&amp;gt;
-    &amp;lt;version&amp;gt;0.10&amp;lt;/version&amp;gt;
-&amp;lt;/dependency&amp;gt;
-&amp;lt;!-- dubbo依赖结束 --&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;由于2.0.0版本的&amp;gt;dubbo-spring-boot-starter对应的dubbo版本为2.6.0，因此需要依赖zkclient，后续的高版本使用的zookeeper客户端为apache-curator。&lt;br&gt;&lt;/p&gt;
     
     </summary>
     

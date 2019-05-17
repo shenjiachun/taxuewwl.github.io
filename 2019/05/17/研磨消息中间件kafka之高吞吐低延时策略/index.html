@@ -4,29 +4,37 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring | 朝·闻·道</title>
+    <title>朝·闻·道</title>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
     
     <meta name="author" content="SnoWalker">
     
 
-    <meta name="keywords" content="跟我学RocketMQ">
-    <meta name="description" content="本文我将继续讲解如何使用DefaultMQPushConsumer对RocketMQ中的消息进行消费，同时在文章的第二部分将继续带领读者朋友对DefaultMQPushConsumer进行薄封装，让我们在Spring中更容易对消息进行消费。
+    
+    <meta name="description" content="title: 研磨消息中间件kafka之高吞吐低延时策略date: 2019-05-17 11:41:09categories: 研磨系列tags: 研磨系列
+keywords: 研磨系列
+提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。
 
-DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利用DefaultMQPushConsumer实现对普通消息和事务消息的消费。">
+消息顺序写Kafka的消息存储在每次写入时，只是将">
 <meta property="og:type" content="article">
-<meta property="og:title" content="跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring">
-<meta property="og:url" content="http://wuwenliang.net/2019/01/23/跟我学RocketMQ-1-4-之消费消息及封装DefaultMQPushConsumer支持spring/index.html">
+<meta property="og:title" content="朝·闻·道">
+<meta property="og:url" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/index.html">
 <meta property="og:site_name" content="朝·闻·道">
-<meta property="og:description" content="本文我将继续讲解如何使用DefaultMQPushConsumer对RocketMQ中的消息进行消费，同时在文章的第二部分将继续带领读者朋友对DefaultMQPushConsumer进行薄封装，让我们在Spring中更容易对消息进行消费。
+<meta property="og:description" content="title: 研磨消息中间件kafka之高吞吐低延时策略date: 2019-05-17 11:41:09categories: 研磨系列tags: 研磨系列
+keywords: 研磨系列
+提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。
 
-DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利用DefaultMQPushConsumer实现对普通消息和事务消息的消费。">
-<meta property="og:updated_time" content="2019-01-23T03:27:45.654Z">
+消息顺序写Kafka的消息存储在每次写入时，只是将">
+<meta property="og:image" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png">
+<meta property="og:updated_time" content="2019-05-17T03:55:43.007Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring">
-<meta name="twitter:description" content="本文我将继续讲解如何使用DefaultMQPushConsumer对RocketMQ中的消息进行消费，同时在文章的第二部分将继续带领读者朋友对DefaultMQPushConsumer进行薄封装，让我们在Spring中更容易对消息进行消费。
+<meta name="twitter:title" content="朝·闻·道">
+<meta name="twitter:description" content="title: 研磨消息中间件kafka之高吞吐低延时策略date: 2019-05-17 11:41:09categories: 研磨系列tags: 研磨系列
+keywords: 研磨系列
+提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。
 
-DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利用DefaultMQPushConsumer实现对普通消息和事务消息的消费。">
+消息顺序写Kafka的消息存储在每次写入时，只是将">
+<meta name="twitter:image" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png">
 
     
     
@@ -84,14 +92,14 @@ DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利�
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2019/01/23/跟我学RocketMQ-1-4-之消费消息及封装DefaultMQPushConsumer支持spring/" title="跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring" itemprop="url">跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring</a>
+      <a href="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/" title="" itemprop="url"></a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2019-01-23T01:26:47.000Z" itemprop="datePublished"> 发表于 2019-01-23</time>
+    <time datetime="2019-05-17T03:41:09.870Z" itemprop="datePublished"> 发表于 2019-05-17</time>
     
   </p>
 </header>
@@ -100,192 +108,48 @@ DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利�
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#通过DefaultMQProducer消费消息"><span class="toc-number">1.</span> <span class="toc-text">通过DefaultMQProducer消费消息</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Spring框架整合DefaultMQPushConsumer"><span class="toc-number">2.</span> <span class="toc-text">Spring框架整合DefaultMQPushConsumer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RocketMQPushConsumerAgent使用案例"><span class="toc-number">3.</span> <span class="toc-text">RocketMQPushConsumerAgent使用案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#附录：RocketMQConsumerConfig配置类"><span class="toc-number">4.</span> <span class="toc-text">附录：RocketMQConsumerConfig配置类</span></a></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#keywords-研磨系列"><span class="toc-number">1.</span> <span class="toc-text">keywords: 研磨系列</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#消息顺序写"><span class="toc-number">1.1.</span> <span class="toc-text">消息顺序写</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#零拷贝"><span class="toc-number">1.2.</span> <span class="toc-text">零拷贝</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#详解零拷贝"><span class="toc-number">1.2.1.</span> <span class="toc-text">详解零拷贝</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Kafka的应用"><span class="toc-number">1.2.2.</span> <span class="toc-text">Kafka的应用</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页缓存"><span class="toc-number">1.3.</span> <span class="toc-text">页缓存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#小结"><span class="toc-number">1.4.</span> <span class="toc-text">小结</span></a></li></ol></li></ol>
 		
 		</div>
 		
-		<p>本文我将继续讲解如何使用DefaultMQPushConsumer对RocketMQ中的消息进行消费，同时在文章的第二部分将继续带领读者朋友对DefaultMQPushConsumer进行薄封装，让我们在Spring中更容易对消息进行消费。</p>
-<blockquote>
-<p>DefaultMQPushConsumer不区分普通消息和事务消息，即我们能够利用DefaultMQPushConsumer实现对普通消息和事务消息的消费。</p>
+		<hr>
+<p>title: 研磨消息中间件kafka之高吞吐低延时策略<br>date: 2019-05-17 11:41:09<br>categories: 研磨系列<br>tags: 研磨系列</p>
+<h2 id="keywords-研磨系列"><a href="#keywords-研磨系列" class="headerlink" title="keywords: 研磨系列"></a>keywords: 研磨系列</h2><blockquote>
+<p>提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。</p>
 </blockquote>
+<h3 id="消息顺序写"><a href="#消息顺序写" class="headerlink" title="消息顺序写"></a>消息顺序写</h3><p>Kafka的消息存储在每次写入时，只是将数据写入到操作系统的页缓存（PageCache）中，最终是由操作系统决定何时将页缓存中的数据落盘的。这样做的好处如下：</p>
+<ol>
+<li>由于页缓存是OS在内存中分配的，因此消息写入速度很快；</li>
+<li>由于Kafka将消息写入页缓存中，因此避免了直接与底层文件系统打交道时候的繁琐流程，所有的I/O操作均交给了操作系统进行处理；</li>
+<li>Kafka写操作采用了append方式（即：追加写入），这种顺序写盘的方式速度很快，避免了因随机写而导致的写入效率低下。</li>
+</ol>
 <a id="more"></a>
-<h2 id="通过DefaultMQProducer消费消息"><a href="#通过DefaultMQProducer消费消息" class="headerlink" title="通过DefaultMQProducer消费消息"></a>通过DefaultMQProducer消费消息</h2><p>首先，声明一个DefaultMQPushConsumer客户端，并通过构造器初始化，构造参数为消费者组。官方建议消费者组以“CID_”开头。</p>
-<pre><code>DefaultMQPushConsumer consumer = 
-    new DefaultMQPushConsumer(&quot;CID_SNOWALKER&quot;);
-</code></pre><p>设置NameServer地址</p>
-<pre><code>defaultMQPushConsumer.setNamesrvAddr(&quot;127.0.0.1:9876&quot;);
-</code></pre><p>设置Consumer第一次启动从队列头部开始消费</p>
-<pre><code>defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-</code></pre><p>设置消费模式为集群方式，CLUSTERING模式下每条消息只会被一个Consumer消费一次，如果设置为BROADCASTING则为广播模式，每个消费者都会将消息消费至少一次。一般我们使用的均为CLUSTERING模式。</p>
-<pre><code>defaultMQPushConsumer.setMessageModel(MessageModel.CLUSTERING);
-</code></pre><p>注册消息监听器，这里需要实现<strong>MessageListenerConcurrently</strong>接口，并实现<strong>consumeMessage(List<messageext> msgs, ConsumeConcurrentlyContext context)</messageext></strong> 方法，我这里的demo是lambda形式，实际上是一样的。如果你不喜欢lambda形式，可以继续使用匿名内部类或者自行定义一个类实现该接口。</p>
-<pre><code>defaultMQPushConsumer.registerMessageListener(
-    (msgs, context) -&gt; {
-        for (MessageExt msg : msgs) {
-            String realMessage = new String(msg.getBody());
-            LOGGER.info(&quot;当前消费线程名={}, 消息id={}, 收到消息为={}&quot;,
-                Thread.currentThread().getName(),
-                msg.getMsgId(),
-                realMessage);
-        }
-        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-    }
-)
-</code></pre><p>这里注意，当消费逻辑执行成功，则返回<strong>ConsumeConcurrentlyStatus.CONSUME_SUCCESS</strong>，后续将不再对该消息进行消费。如果消费逻辑失败，则需要设置为ConsumeConcurrentlyStatus.RECONSUME_LATER, RocketMQ会对消息进行重新推送，默认推送16次，目的是尽量保证消息消费成功，如果达到最大重试次数，还是失败则进入死信队列，等待人工干预。</p>
-<p>调用start()方法，启动对队列的监听，开始进行消息的消费。</p>
-<pre><code>defaultMQPushConsumer.start();
-</code></pre><p>我们尝试运行一下，这里我已经有了对应的消费者，可以看下运行的日志：</p>
-<pre><code>2019-01-23 09:55:25.022  INFO 18784 --- [ublicExecutor_8] c.s.shield.job.publisher.DemoPublisher   : 
-消息id=AC1E5356496018B4AAC2736D06CF0002, 发送结果=SEND_OK
-
-2019-01-23 09:55:27.519  INFO 18784 --- [MessageThread_8] c.s.shield.job.consumer.DemoConsumer     : 
-当前消费线程名=ConsumeMessageThread_8, 消息id=AC1E5356496018B4AAC2736D06CF0002, 收到消息为={&quot;msgName&quot;:&quot;rocketmq-simple-msg-test&quot;,&quot;topicName&quot;:&quot;SNOWALKER_TEST&quot;,&quot;tagName&quot;:&quot;SNOWALKER_TEST-TAG&quot;,&quot;clusterName&quot;:&quot;localhost.localdomain&quot;,&quot;taskName&quot;:&quot;测试消息简单发送------第0次&quot;,&quot;threadSize&quot;:&quot;10&quot;,&quot;threadName&quot;:&quot;simple-msg-test-0&quot;}
-</code></pre><p>可以看到broker推送消息至消费端，并且被成功消费。</p>
-<h2 id="Spring框架整合DefaultMQPushConsumer"><a href="#Spring框架整合DefaultMQPushConsumer" class="headerlink" title="Spring框架整合DefaultMQPushConsumer"></a>Spring框架整合DefaultMQPushConsumer</h2><p>我们仍然基于<strong>Spring Boot v1.5.3.RELEASE</strong>, <strong>Spring v4.3.8.RELEASE</strong> 对DefaultMQPushConsumer进行整合，相关代码已经上传至github </p>
-<p><a href="https://github.com/TaXueWWL/shield-rocketmq-client-spring/blob/master/src/main/java/com/snowalker/shield/rocketmq/client/RocketMQPushConsumerAgent.java" target="_blank" rel="external">RocketMQPushConsumerAgent.java</a></p>
-<p>这里对核心代码进行讲解。</p>
-<p>首先定义RocketMQPushConsumerAgent.java并将其声明为spring的bean，作用域为prototype，即多例形式。</p>
-<pre><code>@Scope(&quot;prototype&quot;)
-@Component
-public class RocketMQPushConsumerAgent {
-</code></pre><p>声明消息监听器及消息消费者</p>
-<pre><code>private MessageListenerConcurrently messageListener;
-
-private DefaultMQPushConsumer defaultMQPushConsumer;
-</code></pre><p>init()方法为核心的初始化逻辑，在该方法中，初始化了DefaultMQPushConsumer，并设置NameServer地址、消费模式以及将外部实现的监听器设置给内部的messageListener引用。</p>
-<p>接着对消息主题进行订阅，对该主题下所有的消息进行监听，这里有待优化，后续将把消息的过滤表达式也暴露给调用者。</p>
-<p>所有的配置参数均通过RocketMQConsumerConfig进行设置，保证接口的整洁性，RocketMQConsumerConfig将在附录中进行简单讲解。</p>
-<pre><code>public RocketMQPushConsumerAgent init(RocketMQConsumerConfig consumerConfig, MessageListenerConcurrently messageListener)  throws MQClientException  {
-    defaultMQPushConsumer = new DefaultMQPushConsumer(consumerConfig.getConsumerGroup());
-    defaultMQPushConsumer.setNamesrvAddr(consumerConfig.getNameSrvAddr());
-    defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-    // 消费模式
-    if (consumerConfig.getMessageModel() != null) {
-        defaultMQPushConsumer.setMessageModel(consumerConfig.getMessageModel());
-    }
-    // 注册监听器
-    this.messageListener = messageListener;
-    defaultMQPushConsumer.registerMessageListener(this.messageListener);
-    defaultMQPushConsumer.subscribe(consumerConfig.getTopic(), &quot;*&quot;);
-    LOGGER.debug(&quot;com.shield.job.message.rocketmq.RocketMQConsumerAgent消费者客户端组装完成&quot;);
-    return this;
-}
-</code></pre><p>独立的启动方法</p>
-<pre><code>public void start() throws MQClientException {
-    this.defaultMQPushConsumer.start();
-}
-</code></pre><p>独立的关闭方法</p>
-<pre><code>public void destroy() {
-    defaultMQPushConsumer.shutdown();
-    LOGGER.debug(&quot;com.shield.job.message.rocketmq.RocketMQConsumerAgent消费者客户端[已关闭]&quot;);
-}
-</code></pre><p>为方便外部对消费者进行进一步的自定义设置，提供外部获取defaultMQPushConsumer的接口。</p>
-<pre><code>public DefaultMQPushConsumer getConsumer() {
-    return defaultMQPushConsumer;
-}
-</code></pre><h2 id="RocketMQPushConsumerAgent使用案例"><a href="#RocketMQPushConsumerAgent使用案例" class="headerlink" title="RocketMQPushConsumerAgent使用案例"></a>RocketMQPushConsumerAgent使用案例</h2><p>仍然依据开头的示例进行改造。</p>
-<pre><code>@Component
-public class DemoConsumer {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
-</code></pre><p>使用@Resource(name = “rocketMQPushConsumerAgent”)或者直接@Autowired将自定义的消息消费者注入。</p>
-<pre><code>@Resource(name = &quot;rocketMQPushConsumerAgent&quot;)
-RocketMQPushConsumerAgent rocketMQConsumerAgent;
-</code></pre><p>调用方需要实现一个返回值为void的方法，并标记为@PostConstruct，在该方法中进行rocketMQConsumerAgent的初始化。当spring在加载过程中，DemoConsumer初始化之前会调用该init()方法初始化rocketMQConsumerAgent。通过start()链式调用，启动消息消费者，内部是调用的defaultMQPushConsumer.start()方法。</p>
-<pre><code>    @PostConstruct
-    void init() {
-        try {
-            rocketMQConsumerAgent.init(
-                    new RocketMQConsumerConfig(
-                            &quot;snowalker-consumer-group&quot;,
-                            &quot;172.30.83.100:9876&quot;,
-                            &quot;SNOWALKER_TEST&quot;,
-                            MessageModel.CLUSTERING),
-                    (msgs, context) -&gt; {
-                        for (MessageExt msg : msgs) {
-                            String realMessage = new String(msg.getBody());
-                            LOGGER.info(&quot;当前消费线程名={}, 消息id={}, 收到消息为={}&quot;,
-                                    Thread.currentThread().getName(),
-                                    msg.getMsgId(),
-                                    realMessage);
-                        }
-                        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                    }
-            ).start();
-            LOGGER.info(&quot;DemoConsumer 初始化RocketMQ简单消息消费者完成&quot;);
-        } catch (MQClientException e) {
-            e.printStackTrace();
-            LOGGER.info(&quot;DemoConsumer 初始化RocketMQ简单消息消费者失败&quot;);
-        }
-
-    }
-}
-</code></pre><p>在init()方法中同时将消息监听器的实现逻辑注入，消费者会加载该接口的实现。</p>
-<h2 id="附录：RocketMQConsumerConfig配置类"><a href="#附录：RocketMQConsumerConfig配置类" class="headerlink" title="附录：RocketMQConsumerConfig配置类"></a>附录：RocketMQConsumerConfig配置类</h2><pre><code>public class RocketMQConsumerConfig {
-
-    /**消费者组*/
-    private String consumerGroup;
-
-    /**nameServer地址*/
-    private String nameSrvAddr;
-
-    /**消息消费主题*/
-    private String topic;
-
-    private MessageModel messageModel;
-
-    public RocketMQConsumerConfig(String consumerGroup, String nameSrvAddr, String topic) {
-        Preconditions.checkNotNull(consumerGroup);
-        Preconditions.checkNotNull(nameSrvAddr);
-        Preconditions.checkNotNull(topic);
-        this.consumerGroup = consumerGroup;
-        this.nameSrvAddr = nameSrvAddr;
-        this.topic = topic;
-    }
-
-    public RocketMQConsumerConfig(String consumerGroup, String nameSrvAddr, String topic, MessageModel messageModel) {
-        Preconditions.checkNotNull(consumerGroup);
-        Preconditions.checkNotNull(nameSrvAddr);
-        Preconditions.checkNotNull(topic);
-        Preconditions.checkNotNull(messageModel);
-        this.consumerGroup = consumerGroup;
-        this.nameSrvAddr = nameSrvAddr;
-        this.topic = topic;
-        this.messageModel = messageModel;
-    }
-
-    public String getConsumerGroup() {
-        return consumerGroup;
-    }
-
-    public String getNameSrvAddr() {
-        return nameSrvAddr;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public MessageModel getMessageModel() {
-        return messageModel;
-    }
-}
-</code></pre><p>该配置类封装了消费者客户端初始化的必填参数，目的是收拢初始化参数，从而使初始化接口更加简洁，符合开闭原则。我的习惯是超过三个参数后就考虑是否封装为一个javabean，封装的前提是在同一个上下文中，希望能够对你有所帮助。</p>
+<p>对于上述的第三点，着重进行解析：</p>
+<p>对于机械硬盘而言，对数据进行随机读写的吞吐量往往是很低的，但如果读写是顺序的，则速度很快，其顺序读写的速度甚至接近内存的随机I/O。而Kafka正是因此而采用了append方式进行消息的写入。</p>
+<p>即：只在日志文件的末尾追加写入新消息，同时对于已经写入的消息，不允许进行修改。</p>
+<p>正因为Kafka采用的是磁盘顺序访问方式，所以其消息发送的吞吐量很高，实际使用中达到每秒写入数万到数十万条消息是很轻松的。</p>
+<h3 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h3><p>Kafka对消息读取时，首先尝试从OS的pageCache中读取，读取成功则将消息通过页缓存直接发送到网络的Socket上。该过程利用了Linux平台上的sendfile系统调用实现，该技术的核心原理便是零拷贝（Zero Copy）。</p>
+<p>零拷贝的原理示意图如下:</p>
+<p><img src="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png" alt="零拷贝图示"></p>
+<h4 id="详解零拷贝"><a href="#详解零拷贝" class="headerlink" title="详解零拷贝"></a>详解零拷贝</h4><p>接下来对该图做一个较为详细的讲解：</p>
+<p>传统Linux操作系统在进行I/O操作时是通过数据的复制（或者说拷贝）实现的，在零拷贝技术出现之前，一个I/O操作会对数据进行多次拷贝，该过程涉及到内核态与用户态的上下文切换，对于CPU的压力较大，无法做到高效率的进行数据的传输。</p>
+<p>而零拷贝就是为改善该问题而存在的，当内核驱动程序通过I/O处理数据(如：从磁盘中读取文件)时，不需要进行上下文切换，即：无需将数据从内核缓冲区（PageCache）复制到应用程序内存（即用户态），而是直接在内核空间中从内核缓冲区拷贝到Socket缓冲区。节省了内核缓冲区与用户态应用程序内存之间的数据拷贝，</p>
+<p>实际上，内核缓冲区与Socket缓冲区之间并没有真正的做数据拷贝操作，而是做了地址映射，当底层网卡驱动要读取数据并发送到网络的时候，看起来好像是读取了Socket缓冲区的数据，实际上是直接读取了内核缓冲区的数据，数据实际上只有一份，而这是利用了DMA（Direct Memeory Access，直接内存存储器访问技术）实现的，通过DMA进行I/O操作，不仅避免了内核缓冲区与用户缓冲区的数据拷贝，还减少了内核缓冲区与socket缓冲区间的数据拷贝，因此得名“零拷贝”。</p>
+<h4 id="Kafka的应用"><a href="#Kafka的应用" class="headerlink" title="Kafka的应用"></a>Kafka的应用</h4><p>Kafka消息消费机制使用的是Linux提供的sendfile系统调用实现的零拷贝技术，进一步说是通过Java的FileChannel.transferTo来实现的。</p>
+<h3 id="页缓存"><a href="#页缓存" class="headerlink" title="页缓存"></a>页缓存</h3><p>Kafka大量使用了操作系统的页缓存，当读取消息时，由于大量的消息保存在页缓存中，因此读取消息能够直接命中缓存而不必穿透到底层的物理磁盘中获取消息，这极大的提升了消息读取的吞吐量。</p>
+<p>在经过良好的系统调优的Kafka集群中，对于存在较明显负载的Broker机器而言，对物理磁盘的读操作也是很少的，这正是因为消息读取操作很大程度上是直接命中了页缓存而未到达物理磁盘。</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>Kafka之所以能够表现出高吞吐、低延时的良好性能，主要依托本文提到的要点进行了设计：</p>
+<ol>
+<li>大量地使用OS的页缓存进行操作，减少I/O性能消耗</li>
+<li>Kafka本身不进行物理I/O操作，而是利用了OS进行I/O操作</li>
+<li>消息写入采用了追加写入的方式，避免了对磁盘的随机读写，从而极大的提高了写入的效率</li>
+<li>采用“零拷贝”技术，极大的提升了网络传输效率。</li>
+</ol>
   
 	</div>
 		<footer class="article-footer clearfix">
 <div class="article-catetags">
 
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/跟我学RocketMQ/">跟我学RocketMQ</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/跟我学RocketMQ/">跟我学RocketMQ</a>
-  </div>
 
 </div>
 
@@ -293,7 +157,7 @@ RocketMQPushConsumerAgent rocketMQConsumerAgent;
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2019/01/23/跟我学RocketMQ-1-4-之消费消息及封装DefaultMQPushConsumer支持spring/" data-title="跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring | 朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/" data-title="朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -306,19 +170,11 @@ RocketMQPushConsumerAgent rocketMQConsumerAgent;
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2019/01/23/跟我学RocketMQ-1-5-之发送事务消息实现分布式事务及封装TransactionMQProducer支持spring/" title="跟我学RocketMQ[1-5]之发送事务消息实现分布式事务及封装TransactionMQProducer支持spring">
-  <strong>上一篇：</strong><br/>
-  <span>
-  跟我学RocketMQ[1-5]之发送事务消息实现分布式事务及封装TransactionMQProducer支持spring</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2019/01/23/跟我学RocketMQ-1-3-之发送普通消息及封装DefaultMQProducer支持spring/"  title="跟我学RocketMQ[1-3]之发送普通消息及封装DefaultMQProducer支持spring">
+<a href="/2019/05/17/研磨消息中间件kafka之总览/"  title="研磨消息中间件kafka之总览">
  <strong>下一篇：</strong><br/> 
- <span>跟我学RocketMQ[1-3]之发送普通消息及封装DefaultMQProducer支持spring
+ <span>研磨消息中间件kafka之总览
 </span>
 </a>
 </div>
@@ -327,7 +183,7 @@ RocketMQPushConsumerAgent rocketMQConsumerAgent;
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2019/01/23/跟我学RocketMQ-1-4-之消费消息及封装DefaultMQPushConsumer支持spring/" data-title="跟我学RocketMQ[1-4]之消费消息及封装DefaultMQPushConsumer支持spring" data-url="http://wuwenliang.net/2019/01/23/跟我学RocketMQ-1-4-之消费消息及封装DefaultMQPushConsumer支持spring/"></div>
+	<div class="ds-thread" data-thread-key="2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/" data-title="" data-url="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/"></div>
 </section>
 
 
@@ -339,7 +195,7 @@ RocketMQPushConsumerAgent rocketMQConsumerAgent;
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#通过DefaultMQProducer消费消息"><span class="toc-number">1.</span> <span class="toc-text">通过DefaultMQProducer消费消息</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Spring框架整合DefaultMQPushConsumer"><span class="toc-number">2.</span> <span class="toc-text">Spring框架整合DefaultMQPushConsumer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RocketMQPushConsumerAgent使用案例"><span class="toc-number">3.</span> <span class="toc-text">RocketMQPushConsumerAgent使用案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#附录：RocketMQConsumerConfig配置类"><span class="toc-number">4.</span> <span class="toc-text">附录：RocketMQConsumerConfig配置类</span></a></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#keywords-研磨系列"><span class="toc-number">1.</span> <span class="toc-text">keywords: 研磨系列</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#消息顺序写"><span class="toc-number">1.1.</span> <span class="toc-text">消息顺序写</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#零拷贝"><span class="toc-number">1.2.</span> <span class="toc-text">零拷贝</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#详解零拷贝"><span class="toc-number">1.2.1.</span> <span class="toc-text">详解零拷贝</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Kafka的应用"><span class="toc-number">1.2.2.</span> <span class="toc-text">Kafka的应用</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#页缓存"><span class="toc-number">1.3.</span> <span class="toc-text">页缓存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#小结"><span class="toc-number">1.4.</span> <span class="toc-text">小结</span></a></li></ol></li></ol>
  
   </div>
 
