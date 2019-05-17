@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-05-17T03:59:18.776Z</updated>
+  <updated>2019-05-17T06:38:45.487Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,57 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>研磨消息中间件kafka之消息持久化及副本</title>
+    <link href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%B6%88%E6%81%AF%E6%8C%81%E4%B9%85%E5%8C%96%E5%8F%8A%E5%89%AF%E6%9C%AC/"/>
+    <id>http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/</id>
+    <published>2019-05-17T05:55:55.000Z</published>
+    <updated>2019-05-17T06:38:45.487Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>本文主要介绍Kafka的消息持久化策略及副本机制。</p>
+</blockquote>
+<h2 id="Kafka消息持久化策略"><a href="#Kafka消息持久化策略" class="headerlink" title="Kafka消息持久化策略"></a>Kafka消息持久化策略</h2><p>首先简要说明一下Kafka持久化消息的优点：</p>
+<ol>
+<li>Kafka通过消息持久化解耦了消息的生产者和消费者，这也是采用队列的优势，使得生产者和消费者均只需要关心自己的逻辑，而不需要直接感知到彼此的存在。</li>
+<li>Kafka支持对消费过的消息进行“消息重演(Message Replay)”，而重演的基础就是实现消息持久化。</li>
+</ol>
+<p>Kafka为了保证消息落盘的实时，确保消息不丢失，没有采用直接写内存，等写满后一次性刷盘的策略，而是将数据立即写入文件系统的日志中，写入成功后才将结果返回给客户端告知客户端–消息已经成功写入。这么做的目的是，一方面实时地保存了数据，另一方面又减少了对内存的消耗，将内存空间尽量留给页缓存使用，从而提升了整体的性能。</p>
+<a id="more"></a>
+<h2 id="Kafka的副本机制"><a href="#Kafka的副本机制" class="headerlink" title="Kafka的副本机制"></a>Kafka的副本机制</h2><p>Kafka为了实现服务高可靠，采用了多副本机制。这么做的目的是为了解决分布式系统都会面临的高可靠保证的问题。</p>
+<p>如果只保留一份数据，如果该节点down机，则节点中保存的消息日志就会丢失，从而造成难以估计的问题。因此Kafka采用目前应用较为广泛的一种解决策略：即采用冗余机制，通俗的说就是 <strong>“不要把鸡蛋放在一个篮子里。”</strong></p>
+<p>Kafka的冗余机制简单地说就是将消息日志备份多份，而这些备份的日志在Kafka的概念中成为“副本（replica）”，之所以采用副本机制，核心的目的就是为了防止数据丢失。</p>
+<p>对于副本，又有两个角色，分别为：<strong>leader replica(领导者副本)</strong> 、 <strong>follower replica(跟随者副本)</strong> 。 </p>
+<p>只有leader角色的副本才对外提供服务，即只有leader副本才能够响应客户端发送的消息写入即消息消费的请求。而follower副本不对客户端提供服务，它只能被动获取leader副本的数据，保持与leader的消息同步。</p>
+<p>当出现leader副本所在的broker发生down机，Kafka会在剩余的副本中选举新的leader继续提供服务，这也是Kafka与其他消息队列，如：RocketMQ的不同之处，也是它设计的精要及难点。</p>
+<p>Kafka的leader选举依赖zookeeper进行。</p>
+<h3 id="解析leader和follower"><a href="#解析leader和follower" class="headerlink" title="解析leader和follower"></a>解析leader和follower</h3><p>上文中我们提到Kafka的副本包括 leader副本和follower副本，与MySQL的主从机制不同，在Kafka的leader-follower体系中，同一时刻只有leader对外提供服务，follower只是起到冗余数据备份的作用，它与leader保持数据同步，并追随leader的状态进行自身状态的变更。</p>
+<p>当leader节点出现down机，集群会发生新的leader选举过程，在剩余的follower节点中选举一个作为新的leader角色并对外提供服务，从而保证集群的高可用性。</p>
+<p><strong>注意</strong> ：Kafka能够保证对于同一个分区（Partition，关于Partition会在后面的文章中讲解）下的多个replica一定不会分配在同一台broker上，通过这个规则，Kafka保证副本是有效且可靠的，实现了将鸡蛋存放在多个篮子中的目的。原理如图：</p>
+<p><img src="/2019/05/17/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png" alt="Kafka的leader-follower副本机制示意图"></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;本文主要介绍Kafka的消息持久化策略及副本机制。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;Kafka消息持久化策略&quot;&gt;&lt;a href=&quot;#Kafka消息持久化策略&quot; class=&quot;headerlink&quot; title=&quot;Kafka消息持久化策略&quot;&gt;&lt;/a&gt;Kafka消息持久化策略&lt;/h2&gt;&lt;p&gt;首先简要说明一下Kafka持久化消息的优点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Kafka通过消息持久化解耦了消息的生产者和消费者，这也是采用队列的优势，使得生产者和消费者均只需要关心自己的逻辑，而不需要直接感知到彼此的存在。&lt;/li&gt;
+&lt;li&gt;Kafka支持对消费过的消息进行“消息重演(Message Replay)”，而重演的基础就是实现消息持久化。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Kafka为了保证消息落盘的实时，确保消息不丢失，没有采用直接写内存，等写满后一次性刷盘的策略，而是将数据立即写入文件系统的日志中，写入成功后才将结果返回给客户端告知客户端–消息已经成功写入。这么做的目的是，一方面实时地保存了数据，另一方面又减少了对内存的消耗，将内存空间尽量留给页缓存使用，从而提升了整体的性能。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/categories/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/tags/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+  </entry>
   
   <entry>
     <title>研磨消息中间件kafka之高吞吐低延时策略</title>
@@ -81,7 +132,7 @@
     <link href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%80%BB%E8%A7%88/"/>
     <id>http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之总览/</id>
     <published>2019-05-17T03:26:48.000Z</published>
-    <updated>2019-05-17T03:32:03.089Z</updated>
+    <updated>2019-05-17T03:59:15.498Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>本文是新系列“研磨”系列的开篇，该系列主要立足源码分析、核心技术点分析、常见问题整理等方面。一篇文章围绕一个中间件，立足于讲清、讲透、讲明白。</p>
@@ -4624,312 +4675,6 @@ return result;
     
     
       <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/tags/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>[dubbo]springboot2.x整合dubbo之整合dubbo2.6.5</title>
-    <link href="http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E6%95%B4%E5%90%88dubbo2-6-5/"/>
-    <id>http://wuwenliang.net/2019/02/20/dubbo-springboot2-x整合dubbo之整合dubbo2-6-5/</id>
-    <published>2019-02-20T13:42:59.000Z</published>
-    <updated>2019-02-20T14:51:04.915Z</updated>
-    
-    <content type="html"><![CDATA[<p>在上篇文章中，我们讲解了如何整合dubbo-spring-boot-starter实现服务化框架的搭建。</p>
-<p>文章末尾，我给出了建议，dubbo-spring-boot-starter使用的注解方式的配置不如传统的xml文件灵活，因此我们在线上的开发框架是基于springboot2.x整合了dubbo2.6.5。</p>
-<p>通过配置文件的方式更加直观的管理dubbo服务，并对其进行相关的优化操作等。</p>
-<p>我们选择的springboot框架的版本为2.1.2.RELEASE，选择了dubbo2.6.5作为基础的整合版本，该版本相比更早的2.5.x修复了较多的遗留bug，且对nacos、sentinel等框架的适配度更好。</p>
-<p>话不多说，进入正题。</p>
-<a id="more"></a>
-<h2 id="服务提供方开发"><a href="#服务提供方开发" class="headerlink" title="服务提供方开发"></a>服务提供方开发</h2><p>首先整合服务提供方的配置。</p>
-<h3 id="引入dubbo依赖"><a href="#引入dubbo依赖" class="headerlink" title="引入dubbo依赖"></a>引入dubbo依赖</h3><p>建立一个maven工程dubbo-provider,并在其pom.xml中添加依赖如下：</p>
-<pre><code>&lt;properties&gt;
-    &lt;maven.compiler.source&gt;1.8&lt;/maven.compiler.source&gt;
-    &lt;maven.compiler.target&gt;1.8&lt;/maven.compiler.target&gt;
-    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
-    &lt;project.reporting.outputEncoding&gt;UTF-8&lt;/project.reporting.outputEncoding&gt;
-    &lt;curator-framework.version&gt;4.1.0&lt;/curator-framework.version&gt;
-    &lt;zookeeper.version&gt;3.4.13&lt;/zookeeper.version&gt;
-&lt;/properties&gt;
-
-.....
-
-&lt;!-- dubbo依赖开始 --&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
-    &lt;artifactId&gt;dubbo&lt;/artifactId&gt;
-    &lt;version&gt;2.6.5&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.zookeeper&lt;/groupId&gt;
-    &lt;artifactId&gt;zookeeper&lt;/artifactId&gt;
-    &lt;version&gt;${zookeeper.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.curator&lt;/groupId&gt;
-    &lt;artifactId&gt;curator-framework&lt;/artifactId&gt;
-    &lt;version&gt;${curator-framework.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;!-- dubbo依赖结束 --&gt;
-</code></pre><p>这里要注意的是，从2.6.5开始，dubbo默认使用的zookeeper客户端更换为apache-curator，不再是zkclient了，因此我们要将apache.curator的依赖引入。你可以直接复用我的配置。</p>
-<h3 id="编写dubbo配置文件"><a href="#编写dubbo配置文件" class="headerlink" title="编写dubbo配置文件"></a>编写dubbo配置文件</h3><p>在resources文件夹下建立META-INF/dubbo目录，并在其中放置applicationContext-dubbo.xml配置文件，内容如下</p>
-<h4 id="applicationContext-dubbo-xml"><a href="#applicationContext-dubbo-xml" class="headerlink" title="applicationContext-dubbo.xml"></a>applicationContext-dubbo.xml</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
-    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:dubbo=&quot;http://code.alibabatech.com/schema/dubbo&quot;
-    xsi:schemaLocation=&quot;
-    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
-    http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd&quot;&gt;
-
-    &lt;!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 --&gt;
-    &lt;dubbo:application name=&quot;${spring.application.name}&quot; /&gt;
-
-    &lt;!-- 使用Zookeeper集群注册中心暴露服务地址 --&gt;
-    &lt;dubbo:registry protocol=&quot;zookeeper&quot; address=&quot;${dubbo.zookeeper.address}&quot; /&gt;
-
-    &lt;dubbo:protocol name=&quot;${dubbo.protocol}&quot; port=&quot;${dubbo.port}&quot; threadpool=&quot;fixed&quot; threads=&quot;1000&quot; /&gt;
-
-    &lt;import resource=&quot;classpath:META-INF/dubbo/applicationContext-dubbo-service.xml&quot; /&gt;
-&lt;/beans&gt;
-</code></pre><p>在它引用的applicationContext-dubbo-service.xml中添加我们的dubbo服务实现类及接口配置，这里同样只是为了说明配置方式，简化了服务的代码逻辑。</p>
-<h4 id="applicationContext-dubbo-service-xml"><a href="#applicationContext-dubbo-service-xml" class="headerlink" title="applicationContext-dubbo-service.xml"></a>applicationContext-dubbo-service.xml</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
-    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:dubbo=&quot;http://code.alibabatech.com/schema/dubbo&quot;
-    xsi:schemaLocation=&quot;
-    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
-    http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd&quot;&gt;
-
-
-    &lt;!--具体的服务实现bean--&gt;
-    &lt;bean id=&quot;helloService&quot; class=&quot;com.snowalker.dubbo.service.HelloServiceImpl&quot; /&gt; 
-
-    &lt;!--服务接口--&gt;
-    &lt;dubbo:service interface=&quot;com.snowalker.dubbo.service.HelloService&quot;
-    ref=&quot;helloService&quot; /&gt;
-
-&lt;/beans&gt;
-</code></pre><p>在applicationContext-dubbo-service.xml中编写服务接口及其实现的类的配置，具体的接口及实现类代码如下：</p>
-<h4 id="服务接口HelloService"><a href="#服务接口HelloService" class="headerlink" title="服务接口HelloService"></a>服务接口HelloService</h4><pre><code>public interface HelloService {
-    /**
-    * @param message
-    * @return
-    */
-    String sayHello(String message);
-}
-</code></pre><h4 id="服务接口实现类HelloServiceImpl"><a href="#服务接口实现类HelloServiceImpl" class="headerlink" title="服务接口实现类HelloServiceImpl"></a>服务接口实现类HelloServiceImpl</h4><pre><code>public class HelloServiceImpl implements HelloService {
-    @Override
-    public String sayHello(String message) {
-        return &quot;HELLO:&quot; + message;
-    }
-}
-</code></pre><p>由于我在applicationContext-dubbo.xml中的部分配置是读取的配置文件，因此需要引入配置文件的读取bean定义，定义写在applicationContext-bean.xml中，内容如下：</p>
-<h4 id="applicationContext-bean-xml"><a href="#applicationContext-bean-xml" class="headerlink" title="applicationContext-bean.xml"></a>applicationContext-bean.xml</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
-    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:p=&quot;http://www.springframework.org/schema/p&quot;
-    xmlns:mvc=&quot;http://www.springframework.org/schema/mvc&quot; xmlns:context=&quot;http://www.springframework.org/schema/context&quot;
-    xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
-    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-    http://www.springframework.org/schema/context
-    http://www.springframework.org/schema/context/spring-context-3.0.xsd
-    http://www.springframework.org/schema/mvc 
-    http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd&quot;&gt;
-
-    &lt;!-- 读取配置文件 --&gt;
-    &lt;bean id=&quot;commonConfigPropertiesReader&quot;
-        class=&quot;org.springframework.beans.factory.config.PropertiesFactoryBean&quot;&gt;
-        &lt;property name=&quot;locations&quot;&gt;
-            &lt;list&gt;
-                &lt;value&gt;classpath*:application.properties&lt;/value&gt;
-            &lt;/list&gt;
-        &lt;/property&gt;
-    &lt;/bean&gt;
-
-    &lt;import resource=&quot;classpath:META-INF/dubbo/applicationContext-dubbo.xml&quot; /&gt;
-&lt;/beans&gt;
-</code></pre><p>这里我们配置读取classpath下的application.properties中的dubbo相关配置</p>
-<h4 id="application-properties中关于dubbo的配置"><a href="#application-properties中关于dubbo的配置" class="headerlink" title="application.properties中关于dubbo的配置"></a>application.properties中关于dubbo的配置</h4><pre><code>......
-########################################################################
-#
-#     dubbo配置
-#
-#########################################################################
-#zookerper配置
-dubbo.zookeeper.address=zookeeper://127.0.0.1:2181?backup=127.0.0.1:2182,127.0.0.1:2183
-dubbo.port=20880
-dubbo.group=hello-provider
-dubbo.timeout=10000
-dubbo.version=1.0
-dubbo.protocol=dubbo
-dubbo.owner=snowalker
-dubbo.service.wallet.version=1.0
-dubbo.hello-provider.group=hello-provider
-</code></pre><p>我们在applicationContext-bean.xml将applicationContext-dubbo.xml包含，这样在引用的时候只需要引用applicationContext-bean.xml即可将定义的所有的bean都注入到spring容器中。</p>
-<p>默认的服务暴露端口为20880</p>
-<p>我们依旧使用zookeeper集群模式作为服务配置中心。</p>
-<h3 id="启动服务，注入配置文件"><a href="#启动服务，注入配置文件" class="headerlink" title="启动服务，注入配置文件"></a>启动服务，注入配置文件</h3><p>在springboot的启动类上将我们定义好的xml文件注入，即可将其中的dubbo服务加载到注册中心，暴露给消费方进行服务调用。代码如下</p>
-<pre><code>@SpringBootApplication
-@ImportResource({&quot;classpath*:META-INF/dubbo/applicationContext-bean.xml&quot;})
-public class WalletApplication {
-
-    public static void main(String[] args) throws Exception {
-        SpringApplication.run(WalletApplication.class, args);
-    }
-}
-</code></pre><p>运行该入口main方法即可启动服务提供方，注意一定要保证到注册中心的连接是通的。</p>
-<h2 id="服务消费方开发"><a href="#服务消费方开发" class="headerlink" title="服务消费方开发"></a>服务消费方开发</h2><p>服务消费方的整合与提供方很类似。</p>
-<h3 id="引入dubbo依赖-1"><a href="#引入dubbo依赖-1" class="headerlink" title="引入dubbo依赖"></a>引入dubbo依赖</h3><p>同样建立一个消费方maven工程，工程名为dubbo-consumer。在pom.xml中添加依赖如下：</p>
-<pre><code>&lt;properties&gt;
-    &lt;maven.compiler.source&gt;1.8&lt;/maven.compiler.source&gt;
-    &lt;maven.compiler.target&gt;1.8&lt;/maven.compiler.target&gt;
-    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
-    &lt;project.reporting.outputEncoding&gt;UTF-8&lt;/project.reporting.outputEncoding&gt;
-    &lt;curator-framework.version&gt;4.1.0&lt;/curator-framework.version&gt;
-    &lt;zookeeper.version&gt;3.4.13&lt;/zookeeper.version&gt;
-&lt;/properties&gt;
-
-.....
-
-&lt;!-- dubbo依赖开始 --&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
-    &lt;artifactId&gt;dubbo&lt;/artifactId&gt;
-    &lt;version&gt;2.6.5&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.zookeeper&lt;/groupId&gt;
-    &lt;artifactId&gt;zookeeper&lt;/artifactId&gt;
-    &lt;version&gt;${zookeeper.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.curator&lt;/groupId&gt;
-    &lt;artifactId&gt;curator-framework&lt;/artifactId&gt;
-    &lt;version&gt;${curator-framework.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;!-- dubbo依赖结束 --&gt;
-</code></pre><h3 id="编写dubbo配置文件-1"><a href="#编写dubbo配置文件-1" class="headerlink" title="编写dubbo配置文件"></a>编写dubbo配置文件</h3><p>同样在resources文件夹下建立META-INF/dubbo目录，并在其中放置applicationContext-dubbo.xml配置文件，内容如下</p>
-<h4 id="applicationContext-dubbo-xml-1"><a href="#applicationContext-dubbo-xml-1" class="headerlink" title="applicationContext-dubbo.xml"></a>applicationContext-dubbo.xml</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
-    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:dubbo=&quot;http://code.alibabatech.com/schema/dubbo&quot;
-    xsi:schemaLocation=&quot;
-    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
-    http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd&quot;&gt;
-
-    &lt;!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 --&gt;
-    &lt;dubbo:application name=&quot;${spring.application.name}&quot; /&gt;
-
-    &lt;!-- 使用Zookeeper集群注册中心暴露服务地址 --&gt;
-    &lt;dubbo:registry address=&quot;${dubbo.zookeeper.address}&quot; /&gt;
-
-    &lt;!--包含服务定义--&gt;
-    &lt;import resource=&quot;classpath:META-INF/dubbo/applicationContext-reference.xml&quot; /&gt;
-&lt;/beans&gt;
-</code></pre><p>在它引用的applicationContext-reference.xml中添加我们的dubbo消费者配置，同样只是为了说明配置方式，简化了服务的代码逻辑。</p>
-<h4 id="applicationContext-reference-xml"><a href="#applicationContext-reference-xml" class="headerlink" title="applicationContext-reference.xml"></a>applicationContext-reference.xml</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
-    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:dubbo=&quot;http://code.alibabatech.com/schema/dubbo&quot;
-    xsi:schemaLocation=&quot;
-    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
-    http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd&quot;&gt;
-
-    &lt;!--消费者服务定义--&gt;
-    &lt;dubbo:reference id=&quot;helloService&quot;
-        interface=&quot;com.snowalker.dubbo.service.HelloService&quot;
-        version=&quot;1.0&quot;
-        group=&quot;${dubbo.hello-provider.group}&quot;
-        timeout=&quot;10000&quot;
-        retries=&quot;0&quot;
-        check=&quot;false&quot;/&gt;
-&lt;/beans&gt;
-</code></pre><p>设置属性 <strong>check=”false”</strong> 表示在启动时候不进行启动前服务检查，这样就不需要先启动提供方而能够将服务消费者启动起来。</p>
-<p>具体的接口及实现类代码如下：</p>
-<h4 id="服务接口HelloService-1"><a href="#服务接口HelloService-1" class="headerlink" title="服务接口HelloService"></a>服务接口HelloService</h4><pre><code>public interface HelloService {
-    /**
-    * @param message
-    * @return
-    */
-    String sayHello(String message);
-}
-</code></pre><p>该接口必须与与服务提供方的完全一致。</p>
-<h4 id="编写服务消费方业务代码"><a href="#编写服务消费方业务代码" class="headerlink" title="编写服务消费方业务代码"></a>编写服务消费方业务代码</h4><pre><code>@Component
-public class Hello implements HelloService {
-
-    @Autowired
-    private IHelloService iHelloService;
-
-    @Override
-    public String sayHello(String message) {
-        return iHelloService.sayHello(message);
-    }
-}
-</code></pre><h4 id="在applicationContext-bean-xml添加读取配置文件的配置，并将applicationContext-dubbo-xml包含进去"><a href="#在applicationContext-bean-xml添加读取配置文件的配置，并将applicationContext-dubbo-xml包含进去" class="headerlink" title="在applicationContext-bean.xml添加读取配置文件的配置，并将applicationContext-dubbo.xml包含进去"></a>在applicationContext-bean.xml添加读取配置文件的配置，并将applicationContext-dubbo.xml包含进去</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
-    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:p=&quot;http://www.springframework.org/schema/p&quot;
-    xmlns:mvc=&quot;http://www.springframework.org/schema/mvc&quot; xmlns:context=&quot;http://www.springframework.org/schema/context&quot;
-    xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
-    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-    http://www.springframework.org/schema/context
-    http://www.springframework.org/schema/context/spring-context-3.0.xsd
-    http://www.springframework.org/schema/mvc 
-    http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd&quot;&gt;
-
-    &lt;!-- 读取配置文件 --&gt;
-    &lt;bean id=&quot;commonConfigPropertiesReader&quot;
-        class=&quot;org.springframework.beans.factory.config.PropertiesFactoryBean&quot;&gt;
-        &lt;property name=&quot;locations&quot;&gt;
-            &lt;list&gt;
-                &lt;value&gt;classpath*:application.properties&lt;/value&gt;
-            &lt;/list&gt;
-        &lt;/property&gt;
-    &lt;/bean&gt;
-
-    &lt;import resource=&quot;classpath:META-INF/dubbo/applicationContext-dubbo.xml&quot; /&gt;
-&lt;/beans&gt;
-</code></pre><p>配置读取classpath下的application.properties中的dubbo相关配置</p>
-<h4 id="application-properties中关于dubbo的配置-1"><a href="#application-properties中关于dubbo的配置-1" class="headerlink" title="application.properties中关于dubbo的配置"></a>application.properties中关于dubbo的配置</h4><pre><code>......
-
-########################################################################
-#
-#     dubbo配置
-#
-#########################################################################
-#zookerper配置
-dubbo.zookeeper.address=zookeeper://172.30.66.106:2181?backup=172.30.66.106:2182,172.30.66.106:2183
-dubbo.hello-provider.group=hello-provider
-</code></pre><p>同提供方一样，只需要引用applicationContext-bean.xml即可将定义的所有的bean都注入到spring容器中。</p>
-<p>dubbo会帮我们在20880端口上查找到helloService并发起远程调用。</p>
-<p>同样需要将服务消费者注册到与提供方相同的注册中心。</p>
-<h3 id="启动服务，注入配置文件-1"><a href="#启动服务，注入配置文件-1" class="headerlink" title="启动服务，注入配置文件"></a>启动服务，注入配置文件</h3><p>在消费者的启动类上标注applicationContext-bean.xml配置，即可将其中的dubbo服务加载到注册中心，并发起远程调用。代码如下</p>
-<pre><code>@SpringBootApplication
-@ImportResource({&quot;classpath*:META-INF/dubbo/applicationContext-bean.xml&quot;})
-public class OrderApplication {
-
-    public static void main(String[] args) throws Exception {
-        ApplicationContext context = SpringApplication.run(HelloService.class, args);
-        Hello hello =
-                context.getBean(&quot;hello&quot;, HelloService.class);
-        String sayHello = hello.sayHello(&quot;SnoWalker&quot;);
-        System.out.println(sayHello);
-    }
-}
-</code></pre><p>运行该入口main方法即可启动服务消费方，测试时需要将服务提供方启动完毕，在消费方服务的控制台可以看到输出如下字样，表明调用成功</p>
-<pre><code>HELLO:SnoWalker
-</code></pre><p>到这里我们便通过xml传统的配置方式实现了springboot2.x框架对dubbo2.6.5的整合，并给予该开发框架实现了dubbo的开发及调用。</p>
-<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文是通过xml的方式整合了dubbo2.6.5版本，相比较dubbo-spring-boot-starter方式，这种方式对服务的定义更加清晰，对开发者更容易上手且容易理解，当然在合适的地方也可以使用注解方式，我们的目的就是在合适的地方使用合适的方式，最大限度的发挥不同整合方式的优势。</p>
-<p>笔者推荐使用本文的方式去进行基础框架的搭建和整合，实践证明更容易使配置清晰，将配置集中管理，不会因为大量的使用注解而造成配置爆炸的情况。对后续的业务迭代和维护更加友好。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;在上篇文章中，我们讲解了如何整合dubbo-spring-boot-starter实现服务化框架的搭建。&lt;/p&gt;
-&lt;p&gt;文章末尾，我给出了建议，dubbo-spring-boot-starter使用的注解方式的配置不如传统的xml文件灵活，因此我们在线上的开发框架是基于springboot2.x整合了dubbo2.6.5。&lt;/p&gt;
-&lt;p&gt;通过配置文件的方式更加直观的管理dubbo服务，并对其进行相关的优化操作等。&lt;/p&gt;
-&lt;p&gt;我们选择的springboot框架的版本为2.1.2.RELEASE，选择了dubbo2.6.5作为基础的整合版本，该版本相比更早的2.5.x修复了较多的遗留bug，且对nacos、sentinel等框架的适配度更好。&lt;/p&gt;
-&lt;p&gt;话不多说，进入正题。&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="Dubbo" scheme="http://wuwenliang.net/categories/Dubbo/"/>
-    
-    
-      <category term="Dubbo" scheme="http://wuwenliang.net/tags/Dubbo/"/>
     
   </entry>
   
