@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-05-17T03:55:43.007Z</updated>
+  <updated>2019-05-17T03:59:18.776Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -16,15 +16,13 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
-    <title></title>
+    <title>研磨消息中间件kafka之高吞吐低延时策略</title>
     <link href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E9%AB%98%E5%90%9E%E5%90%90%E4%BD%8E%E5%BB%B6%E6%97%B6%E7%AD%96%E7%95%A5/"/>
     <id>http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/</id>
-    <published>2019-05-17T03:41:09.870Z</published>
-    <updated>2019-05-17T03:55:43.007Z</updated>
+    <published>2019-05-17T03:41:09.000Z</published>
+    <updated>2019-05-17T03:59:18.776Z</updated>
     
-    <content type="html"><![CDATA[<hr>
-<p>title: 研磨消息中间件kafka之高吞吐低延时策略<br>date: 2019-05-17 11:41:09<br>categories: 研磨系列<br>tags: 研磨系列</p>
-<h2 id="keywords-研磨系列"><a href="#keywords-研磨系列" class="headerlink" title="keywords: 研磨系列"></a>keywords: 研磨系列</h2><blockquote>
+    <content type="html"><![CDATA[<blockquote>
 <p>提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。</p>
 </blockquote>
 <h3 id="消息顺序写"><a href="#消息顺序写" class="headerlink" title="消息顺序写"></a>消息顺序写</h3><p>Kafka的消息存储在每次写入时，只是将数据写入到操作系统的页缓存（PageCache）中，最终是由操作系统决定何时将页缓存中的数据落盘的。这样做的好处如下：</p>
@@ -59,9 +57,7 @@
     
     <summary type="html">
     
-      &lt;hr&gt;
-&lt;p&gt;title: 研磨消息中间件kafka之高吞吐低延时策略&lt;br&gt;date: 2019-05-17 11:41:09&lt;br&gt;categories: 研磨系列&lt;br&gt;tags: 研磨系列&lt;/p&gt;
-&lt;h2 id=&quot;keywords-研磨系列&quot;&gt;&lt;a href=&quot;#keywords-研磨系列&quot; class=&quot;headerlink&quot; title=&quot;keywords: 研磨系列&quot;&gt;&lt;/a&gt;keywords: 研磨系列&lt;/h2&gt;&lt;blockquote&gt;
+      &lt;blockquote&gt;
 &lt;p&gt;提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;h3 id=&quot;消息顺序写&quot;&gt;&lt;a href=&quot;#消息顺序写&quot; class=&quot;headerlink&quot; title=&quot;消息顺序写&quot;&gt;&lt;/a&gt;消息顺序写&lt;/h3&gt;&lt;p&gt;Kafka的消息存储在每次写入时，只是将数据写入到操作系统的页缓存（PageCache）中，最终是由操作系统决定何时将页缓存中的数据落盘的。这样做的好处如下：&lt;/p&gt;
@@ -73,6 +69,10 @@
     
     </summary>
     
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/categories/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/tags/%E7%A0%94%E7%A3%A8Kafka/"/>
     
   </entry>
   
