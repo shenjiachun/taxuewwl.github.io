@@ -4,26 +4,37 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>聊聊tomcat如何支持HTTPS | 朝·闻·道</title>
+    <title>研磨消息中间件Kafka之主题、分区及消息位移 | 朝·闻·道</title>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
     
     <meta name="author" content="SnoWalker">
     
 
-    <meta name="keywords" content="HTTPS">
-    <meta name="description" content="在工作中时长会遇到配置https，今天就来聊聊如何为TOMCAT添加HTTPS的支持。
-tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应商不会直接提供.jks文件。所以，我们就需要将加密文件转换成所需要的jks文件。现将我遇到并解决的相关问题记录下来，仅供各位参考：">
+    <meta name="keywords" content="研磨Kafka">
+    <meta name="description" content="本文中主要涉及到Kafka的消息主题（Topic）、分区（Partition）、消息位移（Offset）。
+
+主题（Topic）与分区（Partition）首先说说Topic。
+直观的说，Topic是一个逻辑上的概念，代表了一类消息。在业务上，一个Topic代表了一类型的具体的业务场景，如：下单场景使用OrderChargeTopic，支付场景则使用PayOrderTopic。
+一个Topic通">
 <meta property="og:type" content="article">
-<meta property="og:title" content="聊聊tomcat如何支持HTTPS">
-<meta property="og:url" content="http://wuwenliang.net/2018/06/28/聊聊tomcat如何支持HTTPS/index.html">
+<meta property="og:title" content="研磨消息中间件Kafka之主题、分区及消息位移">
+<meta property="og:url" content="http://wuwenliang.net/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/index.html">
 <meta property="og:site_name" content="朝·闻·道">
-<meta property="og:description" content="在工作中时长会遇到配置https，今天就来聊聊如何为TOMCAT添加HTTPS的支持。
-tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应商不会直接提供.jks文件。所以，我们就需要将加密文件转换成所需要的jks文件。现将我遇到并解决的相关问题记录下来，仅供各位参考：">
-<meta property="og:updated_time" content="2018-06-28T15:51:51.650Z">
+<meta property="og:description" content="本文中主要涉及到Kafka的消息主题（Topic）、分区（Partition）、消息位移（Offset）。
+
+主题（Topic）与分区（Partition）首先说说Topic。
+直观的说，Topic是一个逻辑上的概念，代表了一类消息。在业务上，一个Topic代表了一类型的具体的业务场景，如：下单场景使用OrderChargeTopic，支付场景则使用PayOrderTopic。
+一个Topic通">
+<meta property="og:image" content="http://wuwenliang.net/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/./partition.png">
+<meta property="og:updated_time" content="2019-05-22T03:26:16.001Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="聊聊tomcat如何支持HTTPS">
-<meta name="twitter:description" content="在工作中时长会遇到配置https，今天就来聊聊如何为TOMCAT添加HTTPS的支持。
-tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应商不会直接提供.jks文件。所以，我们就需要将加密文件转换成所需要的jks文件。现将我遇到并解决的相关问题记录下来，仅供各位参考：">
+<meta name="twitter:title" content="研磨消息中间件Kafka之主题、分区及消息位移">
+<meta name="twitter:description" content="本文中主要涉及到Kafka的消息主题（Topic）、分区（Partition）、消息位移（Offset）。
+
+主题（Topic）与分区（Partition）首先说说Topic。
+直观的说，Topic是一个逻辑上的概念，代表了一类消息。在业务上，一个Topic代表了一类型的具体的业务场景，如：下单场景使用OrderChargeTopic，支付场景则使用PayOrderTopic。
+一个Topic通">
+<meta name="twitter:image" content="http://wuwenliang.net/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/./partition.png">
 
     
     
@@ -81,14 +92,14 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2018/06/28/聊聊tomcat如何支持HTTPS/" title="聊聊tomcat如何支持HTTPS" itemprop="url">聊聊tomcat如何支持HTTPS</a>
+      <a href="/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/" title="研磨消息中间件Kafka之主题、分区及消息位移" itemprop="url">研磨消息中间件Kafka之主题、分区及消息位移</a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2018-06-28T15:47:26.000Z" itemprop="datePublished"> 发表于 2018-06-28</time>
+    <time datetime="2019-05-22T02:22:04.000Z" itemprop="datePublished"> 发表于 2019-05-22</time>
     
   </p>
 </header>
@@ -97,26 +108,28 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#现在介绍怎样将现有的两个文件转换成jks文件："><span class="toc-number">1.</span> <span class="toc-text">现在介绍怎样将现有的两个文件转换成jks文件：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#操作步骤："><span class="toc-number">2.</span> <span class="toc-text">操作步骤：</span></a></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#主题（Topic）与分区（Partition）"><span class="toc-number">1.</span> <span class="toc-text">主题（Topic）与分区（Partition）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#消息位移（Offset）"><span class="toc-number">2.</span> <span class="toc-text">消息位移（Offset）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">3.</span> <span class="toc-text">小结</span></a></li></ol>
 		
 		</div>
 		
-		<p>在工作中时长会遇到配置https，今天就来聊聊如何为TOMCAT添加HTTPS的支持。</p>
-<p>tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应商不会直接提供.jks文件。所以，我们就需要将加密文件转换成所需要的jks文件。<br>现将我遇到并解决的相关问题记录下来，仅供各位参考：<br><a id="more"></a><br>在网上找到了一个免费提供https服务的网站freessl，该网站可以提供免费的https证书，网站地址：<a href="https://freessl.org/" target="_blank" rel="external">https://freessl.org/</a>，<br>通过该网站，我申请到一份免费的https证书，该证书文件包含一个full_chain.pem文件，一个private.key文件。</p>
-<h3 id="现在介绍怎样将现有的两个文件转换成jks文件："><a href="#现在介绍怎样将现有的两个文件转换成jks文件：" class="headerlink" title="现在介绍怎样将现有的两个文件转换成jks文件："></a>现在介绍怎样将现有的两个文件转换成jks文件：</h3><p>过程中会用到两个工具：OpenSSL，Keytool工具。OpenSSL：<br>下载地址：<a href="http://slproweb.com/products/Win32OpenSSL.html" target="_blank" rel="external">http://slproweb.com/products/Win32OpenSSL.html</a>，<br>直接安装即可。</p>
-<p>keytool工具，这是jdk自带的工具，在jdk的/bin目录下可以找到。</p>
-<h3 id="操作步骤："><a href="#操作步骤：" class="headerlink" title="操作步骤："></a>操作步骤：</h3><ol>
-<li><p>找到openssl的bin目录，找到openssl.exe文件，单击右键以管理员身份运行，打开命令行，输入命令：</p>
-<pre><code>pkcs12 -export -out D:\name.pfx -in D:\fullchain.pem -inkey D:\private.key  
-</code></pre></li>
-</ol>
-<p>，按照要求输入两次密码，这时在d盘生成了name.pfx文件。</p>
-<ol>
-<li><p>用keytool工具生成jks文件：打开cmd命令工具，进入jdk的bin目录，输入命令：</p>
-<pre><code>keytool -importkeystore -srckeystore D:\name.pfx -destkeystore D:\name.jks -srcstoretype PKCS12 -deststoretype JKS  
-</code></pre></li>
-</ol>
-<p>按照要求输入密码，然后在d盘就生成了jks文件。<br><strong>过程中的输入的密码请牢记</strong>。得到jks秘钥库后，我们就可以配置在tomcat服务器上，<br>其他服务器可以参照论坛：<a href="https://bbs.wosign.com/forum.php?mod=viewthread&amp;tid=2628&amp;highlight=%B0%A2%C0%EF%D4%C6" target="_blank" rel="external">https://bbs.wosign.com/forum.php?mod=viewthread&amp;tid=2628&amp;highlight=%B0%A2%C0%EF%D4%C6</a></p>
+		<blockquote>
+<p>本文中主要涉及到Kafka的消息主题（Topic）、分区（Partition）、消息位移（Offset）。</p>
+</blockquote>
+<h2 id="主题（Topic）与分区（Partition）"><a href="#主题（Topic）与分区（Partition）" class="headerlink" title="主题（Topic）与分区（Partition）"></a>主题（Topic）与分区（Partition）</h2><p>首先说说Topic。</p>
+<p>直观的说，Topic是一个逻辑上的概念，代表了一类消息。在业务上，一个Topic代表了一类型的具体的业务场景，如：下单场景使用OrderChargeTopic，支付场景则使用PayOrderTopic。</p>
+<p>一个Topic通常会被多个消费者所订阅，从性能方面考量，Kafka没有采用topic-&gt;message的两级结构，而是采用了topic-&gt;Partition-&gt;message三级结构进行负载的分散。也就是说，对于一个topic而言，它包含了多个Partition，对于Partition，我们在 <a href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%B6%88%E6%81%AF%E6%8C%81%E4%B9%85%E5%8C%96%E5%8F%8A%E5%89%AF%E6%9C%AC/">《研磨消息中间件kafka之消息持久化及副本》</a> 这篇文章中也有所涉及。</p>
+<p>如图，是Kafka官网对topic与Partition关系的直观表述</p>
+<p><img src="/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/./partition.png" alt="topic与Partition"></p>
+<a id="more"></a>
+<p>可以直观的看到，一个topic由多个Partition组成，对Kafka而言，Partition是一个不可做修改的有序消息序列，本质上是一个有序的消息日志。</p>
+<p>每一个分区都有一个自己的分区编号，默认从0开始。客户端对Partition的唯一操作是在消息序列的尾部追加写消息（append）。Partition上的每一条消息都会被分配一个唯一的序列号，该序列号在Kafka的概念中称为Offset(位移)。该位移是从0开始顺序递增的整型数。通过该位移数据可唯一定位到某一个Partition下的一条消息。</p>
+<p>Kafka引入Partition的主要目的是为了提高消息吞吐量，Partition数量是可配置的，我们需要根据自身业务量对该值进行合理分配。</p>
+<h2 id="消息位移（Offset）"><a href="#消息位移（Offset）" class="headerlink" title="消息位移（Offset）"></a>消息位移（Offset）</h2><p>承接上文，我们知道在Kafka的分区中，每一条消息都会分配一个唯一序列，称之为Offset。</p>
+<p>在Kafka的消费端也有Offset的概念，也叫做唯一。</p>
+<p>但是，这两个位移概念是不同的。</p>
+<p>对于分区消息位移而言，每条消息在某一个Partition上的位移是固定的，是一个静态概念；对于消费消息位移而言，该位移会跟随消费进度而不断前移，并且不能超过当前分区最新一条消息所在的位移，这里说的消息位移是一个动态的概念。</p>
+<p>也就是说，如果提到了消息位移，我们需要结合上下文语境，确定是静态的消息位移，还是消费者消费的动态消息位移。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>通过消息主题（Topic）、分区（Partition）、消息位移（Offset），我们能够位移确定一条消息，这三个属性其实构成了一条消息的坐标，也就是 <strong>(topic, partition, offset)</strong> 这个三元组唯一标识了Kafka集群中的一条消息。</p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -124,13 +137,13 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
 
 <div class="article-categories">
   <span></span>
-  <a class="article-category-link" href="/categories/HTTPS/">HTTPS</a>
+  <a class="article-category-link" href="/categories/研磨Kafka/">研磨Kafka</a>
 </div>
 
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/HTTPS/">HTTPS</a>
+  <span></span> <a href="/tags/研磨Kafka/">研磨Kafka</a>
   </div>
 
 </div>
@@ -139,7 +152,7 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2018/06/28/聊聊tomcat如何支持HTTPS/" data-title="聊聊tomcat如何支持HTTPS | 朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/" data-title="研磨消息中间件Kafka之主题、分区及消息位移 | 朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -152,19 +165,11 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2018/06/28/使用docker-compose轻松搭建zk集群/" title="使用docker-compose轻松搭建zk集群">
-  <strong>上一篇：</strong><br/>
-  <span>
-  使用docker-compose轻松搭建zk集群</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2018/06/13/岂曰无衣与子同袍/"  title="岂曰无衣与子同袍">
+<a href="/2019/05/21/研磨消息中间件Kafka之高可用相关机制/"  title="研磨消息中间件Kafka之高可用相关机制">
  <strong>下一篇：</strong><br/> 
- <span>岂曰无衣与子同袍
+ <span>研磨消息中间件Kafka之高可用相关机制
 </span>
 </a>
 </div>
@@ -173,7 +178,7 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2018/06/28/聊聊tomcat如何支持HTTPS/" data-title="聊聊tomcat如何支持HTTPS" data-url="http://wuwenliang.net/2018/06/28/聊聊tomcat如何支持HTTPS/"></div>
+	<div class="ds-thread" data-thread-key="2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/" data-title="研磨消息中间件Kafka之主题、分区及消息位移" data-url="http://wuwenliang.net/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/"></div>
 </section>
 
 
@@ -185,7 +190,7 @@ tomcat服务器一般使用的.jks文件配置SSL加密。但是，https供应�
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#现在介绍怎样将现有的两个文件转换成jks文件："><span class="toc-number">1.</span> <span class="toc-text">现在介绍怎样将现有的两个文件转换成jks文件：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#操作步骤："><span class="toc-number">2.</span> <span class="toc-text">操作步骤：</span></a></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#主题（Topic）与分区（Partition）"><span class="toc-number">1.</span> <span class="toc-text">主题（Topic）与分区（Partition）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#消息位移（Offset）"><span class="toc-number">2.</span> <span class="toc-text">消息位移（Offset）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">3.</span> <span class="toc-text">小结</span></a></li></ol>
  
   </div>
 

@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-05-22T02:13:51.570Z</updated>
+  <updated>2019-05-22T03:26:16.001Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,53 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>研磨消息中间件Kafka之主题、分区及消息位移</title>
+    <link href="http://wuwenliang.net/2019/05/22/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6Kafka%E4%B9%8B%E4%B8%BB%E9%A2%98%E3%80%81%E5%88%86%E5%8C%BA%E5%8F%8A%E6%B6%88%E6%81%AF%E4%BD%8D%E7%A7%BB/"/>
+    <id>http://wuwenliang.net/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/</id>
+    <published>2019-05-22T02:22:04.000Z</published>
+    <updated>2019-05-22T03:26:16.001Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>本文中主要涉及到Kafka的消息主题（Topic）、分区（Partition）、消息位移（Offset）。</p>
+</blockquote>
+<h2 id="主题（Topic）与分区（Partition）"><a href="#主题（Topic）与分区（Partition）" class="headerlink" title="主题（Topic）与分区（Partition）"></a>主题（Topic）与分区（Partition）</h2><p>首先说说Topic。</p>
+<p>直观的说，Topic是一个逻辑上的概念，代表了一类消息。在业务上，一个Topic代表了一类型的具体的业务场景，如：下单场景使用OrderChargeTopic，支付场景则使用PayOrderTopic。</p>
+<p>一个Topic通常会被多个消费者所订阅，从性能方面考量，Kafka没有采用topic-&gt;message的两级结构，而是采用了topic-&gt;Partition-&gt;message三级结构进行负载的分散。也就是说，对于一个topic而言，它包含了多个Partition，对于Partition，我们在 <a href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%B6%88%E6%81%AF%E6%8C%81%E4%B9%85%E5%8C%96%E5%8F%8A%E5%89%AF%E6%9C%AC/">《研磨消息中间件kafka之消息持久化及副本》</a> 这篇文章中也有所涉及。</p>
+<p>如图，是Kafka官网对topic与Partition关系的直观表述</p>
+<p><img src="/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/./partition.png" alt="topic与Partition"></p>
+<a id="more"></a>
+<p>可以直观的看到，一个topic由多个Partition组成，对Kafka而言，Partition是一个不可做修改的有序消息序列，本质上是一个有序的消息日志。</p>
+<p>每一个分区都有一个自己的分区编号，默认从0开始。客户端对Partition的唯一操作是在消息序列的尾部追加写消息（append）。Partition上的每一条消息都会被分配一个唯一的序列号，该序列号在Kafka的概念中称为Offset(位移)。该位移是从0开始顺序递增的整型数。通过该位移数据可唯一定位到某一个Partition下的一条消息。</p>
+<p>Kafka引入Partition的主要目的是为了提高消息吞吐量，Partition数量是可配置的，我们需要根据自身业务量对该值进行合理分配。</p>
+<h2 id="消息位移（Offset）"><a href="#消息位移（Offset）" class="headerlink" title="消息位移（Offset）"></a>消息位移（Offset）</h2><p>承接上文，我们知道在Kafka的分区中，每一条消息都会分配一个唯一序列，称之为Offset。</p>
+<p>在Kafka的消费端也有Offset的概念，也叫做唯一。</p>
+<p>但是，这两个位移概念是不同的。</p>
+<p>对于分区消息位移而言，每条消息在某一个Partition上的位移是固定的，是一个静态概念；对于消费消息位移而言，该位移会跟随消费进度而不断前移，并且不能超过当前分区最新一条消息所在的位移，这里说的消息位移是一个动态的概念。</p>
+<p>也就是说，如果提到了消息位移，我们需要结合上下文语境，确定是静态的消息位移，还是消费者消费的动态消息位移。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>通过消息主题（Topic）、分区（Partition）、消息位移（Offset），我们能够位移确定一条消息，这三个属性其实构成了一条消息的坐标，也就是 <strong>(topic, partition, offset)</strong> 这个三元组唯一标识了Kafka集群中的一条消息。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;本文中主要涉及到Kafka的消息主题（Topic）、分区（Partition）、消息位移（Offset）。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;主题（Topic）与分区（Partition）&quot;&gt;&lt;a href=&quot;#主题（Topic）与分区（Partition）&quot; class=&quot;headerlink&quot; title=&quot;主题（Topic）与分区（Partition）&quot;&gt;&lt;/a&gt;主题（Topic）与分区（Partition）&lt;/h2&gt;&lt;p&gt;首先说说Topic。&lt;/p&gt;
+&lt;p&gt;直观的说，Topic是一个逻辑上的概念，代表了一类消息。在业务上，一个Topic代表了一类型的具体的业务场景，如：下单场景使用OrderChargeTopic，支付场景则使用PayOrderTopic。&lt;/p&gt;
+&lt;p&gt;一个Topic通常会被多个消费者所订阅，从性能方面考量，Kafka没有采用topic-&amp;gt;message的两级结构，而是采用了topic-&amp;gt;Partition-&amp;gt;message三级结构进行负载的分散。也就是说，对于一个topic而言，它包含了多个Partition，对于Partition，我们在 &lt;a href=&quot;http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%B6%88%E6%81%AF%E6%8C%81%E4%B9%85%E5%8C%96%E5%8F%8A%E5%89%AF%E6%9C%AC/&quot;&gt;《研磨消息中间件kafka之消息持久化及副本》&lt;/a&gt; 这篇文章中也有所涉及。&lt;/p&gt;
+&lt;p&gt;如图，是Kafka官网对topic与Partition关系的直观表述&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/./partition.png&quot; alt=&quot;topic与Partition&quot;&gt;&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/categories/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/tags/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+  </entry>
   
   <entry>
     <title>研磨消息中间件Kafka之高可用相关机制</title>
@@ -4357,117 +4404,6 @@ public class NacosConfigAnnoatationService implements CommandLineRunner {
     
     
       <category term="专题-分布式" scheme="http://wuwenliang.net/tags/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>自己写dubbo链路追踪工具包-实现dubbo调用中传递打印TraceId[实战整合篇]</title>
-    <link href="http://wuwenliang.net/2019/02/21/%E8%87%AA%E5%B7%B1%E5%86%99dubbo%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA%E5%B7%A5%E5%85%B7%E5%8C%85-%E5%AE%9E%E7%8E%B0dubbo%E8%B0%83%E7%94%A8%E4%B8%AD%E4%BC%A0%E9%80%92%E6%89%93%E5%8D%B0TraceId-%E5%AE%9E%E6%88%98%E6%95%B4%E5%90%88%E7%AF%87/"/>
-    <id>http://wuwenliang.net/2019/02/21/自己写dubbo链路追踪工具包-实现dubbo调用中传递打印TraceId-实战整合篇/</id>
-    <published>2019-02-21T01:34:35.000Z</published>
-    <updated>2019-02-27T16:19:38.339Z</updated>
-    
-    <content type="html"><![CDATA[<p>在上文 <a href="http://wuwenliang.net/2019/02/21/%E8%87%AA%E5%B7%B1%E5%86%99dubbo%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA%E5%B7%A5%E5%85%B7%E5%8C%85-%E5%AE%9E%E7%8E%B0dubbo%E8%B0%83%E7%94%A8%E4%B8%AD%E4%BC%A0%E9%80%92%E6%89%93%E5%8D%B0TraceId-%E5%BC%80%E5%8F%91%E5%8F%8A%E5%8E%9F%E7%90%86%E7%AF%87/">文章链接</a> 中，我从原理及代码实现的角度，完整的呈现了如何基于Dubbo的Filter及SPI机制开发TraceId的开发包。</p>
-<p>本文中，我将着重从实战角度展现如何在项目中使用该工具包，实现TraceId的传递及日志打印。</p>
-<h2 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h2><p>将开发好的工具包（名为shield-dubbo-tracer，<a href="https://github.com/TaXueWWL/shield-dubbo-tracer" target="_blank" rel="external">代码地址</a>）打包并上传至私服，添加坐标到我们的dubbo项目的pom.xml中。<strong>注意</strong>，由于工具包依赖dubbo，因此同时要添加dubbo的依赖，完整的依赖如下：（服务提供方和服务消费方中都需要添加）<br><a id="more"></a></p>
-<pre><code>&lt;!--dubbo traceId工具--&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.snowalker.shield.dubbo.tracer&lt;/groupId&gt;
-    &lt;artifactId&gt;shield-dubbo-tracer&lt;/artifactId&gt;
-    &lt;version&gt;0.1.0&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;!-- dubbo依赖开始 --&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
-    &lt;artifactId&gt;dubbo&lt;/artifactId&gt;
-    &lt;version&gt;2.6.5&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.zookeeper&lt;/groupId&gt;
-    &lt;artifactId&gt;zookeeper&lt;/artifactId&gt;
-    &lt;version&gt;${zookeeper.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.apache.curator&lt;/groupId&gt;
-    &lt;artifactId&gt;curator-framework&lt;/artifactId&gt;
-    &lt;version&gt;${curator-framework.version}&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;!-- dubbo依赖结束 --&gt;
-</code></pre><p>引入依赖即可，不需要额外的多余配置。</p>
-<p>接下来就是在服务提供方和消费方之间进行服务调用，验证功能。</p>
-<p>dubbo相关的配置请参考如下文章，本文不再赘述</p>
-<p><a href="http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E4%BD%BF%E7%94%A8dubbo-spring-boot-starter/">[dubbo]springboot2.x整合dubbo之使用dubbo-spring-boot-starter
-</a></p>
-<p><a href="http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E6%95%B4%E5%90%88dubbo2-6-5/">[dubbo]springboot2.x整合dubbo之基于xml整合dubbo2.6.5
-</a></p>
-<h2 id="服务消费者逻辑"><a href="#服务消费者逻辑" class="headerlink" title="服务消费者逻辑"></a>服务消费者逻辑</h2><h3 id="消费者业务逻辑"><a href="#消费者业务逻辑" class="headerlink" title="消费者业务逻辑"></a>消费者业务逻辑</h3><pre><code>@Service
-public class ChargeWalletConsumerService {
-
-    /**dubbo服务接口*/
-    @Autowired
-    ChargeWalletFacade chargeWalletFacade;
-
-    public void chargeWallet(ChargeWalletRequestData requestData) {
-        TraceIdGenerator.createTraceId();
-        String traceId = TraceIdUtil.getTraceId();
-        System.out.println(&quot;[服务消费方]执行业务逻辑开始,traceId=&quot; + traceId);
-        chargeWalletFacade.chargeWallet(requestData);
-    }
-
-}
-</code></pre><p>逻辑很简单，在服务消费者侧，更准确的说是服务调用发起侧，需要显式调用TraceId的生成方法，</p>
-<pre><code>TraceIdGenerator.createTraceId();
-</code></pre><p>如果不调用，工具包会默认分配一个，但是在调用开始时候就获取不到了，因此从开发方便的角度，建议还是要显式的调用一次。</p>
-<h3 id="消费者调用服务代码"><a href="#消费者调用服务代码" class="headerlink" title="消费者调用服务代码"></a>消费者调用服务代码</h3><pre><code>ApplicationContext context = SpringApplication.run(OrderApplication.class, args);
-ChargeWalletConsumerService chargeWalletConsumerService =
-        context.getBean(&quot;chargeWalletConsumerService&quot;, ChargeWalletConsumerService.class);
-chargeWalletConsumerService.chargeWallet(new ChargeWalletRequestData());
-</code></pre><p>逻辑很简单，从上下文中取到ChargeWalletConsumerService对应的bean，并调用业务方法，从而发起对远程服务的调用。</p>
-<h2 id="服务提供方逻辑"><a href="#服务提供方逻辑" class="headerlink" title="服务提供方逻辑"></a>服务提供方逻辑</h2><p>接着是服务提供方，引入配置后也不需要额外的配置。</p>
-<h3 id="服务提供方代码逻辑"><a href="#服务提供方代码逻辑" class="headerlink" title="服务提供方代码逻辑"></a>服务提供方代码逻辑</h3><pre><code>public class ChargeWalletFacadeImpl implements ChargeWalletFacade {
-
-    @Resource(name = &quot;walletService&quot;)
-    WalletService walletService;
-
-    @Override
-    public ResponseData&lt;ChargeWalletRepsonseData&gt; chargeWallet(ChargeWalletRequestData requestData) {
-        String traceId = TraceIdUtil.getTraceId();
-        System.out.println(&quot;[服务提供方]测试服务提供方,traceId=&quot; + traceId);
-        return null;
-    }
-}
-</code></pre><p>读者这里可能会有疑问，这个服务实现类没有添加任何注解啊？</p>
-<p>不要紧张，我这里用的是xml的配置方式，该服务实现类已经在applicationContext-dubbo-service.xml中配置好了，核心配置如下：</p>
-<pre><code>&lt;dubbo:service interface=&quot;com.gaoyang.marketing.dev.prototype.dubbo.api.ChargeWalletFacade&quot;
-               ref=&quot;chargeWalletFacadeImpl&quot;
-               version=&quot;1.0&quot; group=&quot;wallet&quot;
-               timeout=&quot;3000&quot; owner=&quot;snowalker&quot; /&gt;
-</code></pre><p>在20880端口暴露该服务。</p>
-<p>到这里我们的测试代码就开发完成。</p>
-<h2 id="测试TraceId传递"><a href="#测试TraceId传递" class="headerlink" title="测试TraceId传递"></a>测试TraceId传递</h2><ol>
-<li>首先启动服务提供方</li>
-<li>启动服务消费方，main方法中发起对提供方的调用</li>
-<li>观察提供方及消费方的控制台打印情况。</li>
-</ol>
-<h3 id="服务消费方日志打印"><a href="#服务消费方日志打印" class="headerlink" title="服务消费方日志打印"></a>服务消费方日志打印</h3><pre><code>[服务消费方]执行业务逻辑开始,traceId=ac1e535620190221091119953783494f
-</code></pre><h3 id="服务提供方日志打印"><a href="#服务提供方日志打印" class="headerlink" title="服务提供方日志打印"></a>服务提供方日志打印</h3><pre><code>[服务提供方]测试服务提供方,traceId=ac1e535620190221091119953783494f
-</code></pre><p>可以看到，traceId已经从消费方传递至提供方，并能够灵活的取出做日志打印。</p>
-<p>dubbo服务之间通过RpcContext隐式传参，在服务线程内通过TraceUtil上下文直接获取。</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>到这里，我们就完成了集成TraceId工具包shield-dubbo-tracer的整合及测试工作，可以看到，整合过程是蛮简洁的，调用过程也是比较直观的，希望该工具包能够对大家做TraceId日志监控、链路追踪等工作有所帮助吧。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;在上文 &lt;a href=&quot;http://wuwenliang.net/2019/02/21/%E8%87%AA%E5%B7%B1%E5%86%99dubbo%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA%E5%B7%A5%E5%85%B7%E5%8C%85-%E5%AE%9E%E7%8E%B0dubbo%E8%B0%83%E7%94%A8%E4%B8%AD%E4%BC%A0%E9%80%92%E6%89%93%E5%8D%B0TraceId-%E5%BC%80%E5%8F%91%E5%8F%8A%E5%8E%9F%E7%90%86%E7%AF%87/&quot;&gt;文章链接&lt;/a&gt; 中，我从原理及代码实现的角度，完整的呈现了如何基于Dubbo的Filter及SPI机制开发TraceId的开发包。&lt;/p&gt;
-&lt;p&gt;本文中，我将着重从实战角度展现如何在项目中使用该工具包，实现TraceId的传递及日志打印。&lt;/p&gt;
-&lt;h2 id=&quot;引入依赖&quot;&gt;&lt;a href=&quot;#引入依赖&quot; class=&quot;headerlink&quot; title=&quot;引入依赖&quot;&gt;&lt;/a&gt;引入依赖&lt;/h2&gt;&lt;p&gt;将开发好的工具包（名为shield-dubbo-tracer，&lt;a href=&quot;https://github.com/TaXueWWL/shield-dubbo-tracer&quot;&gt;代码地址&lt;/a&gt;）打包并上传至私服，添加坐标到我们的dubbo项目的pom.xml中。&lt;strong&gt;注意&lt;/strong&gt;，由于工具包依赖dubbo，因此同时要添加dubbo的依赖，完整的依赖如下：（服务提供方和服务消费方中都需要添加）&lt;br&gt;&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/categories/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
-    
-    
-      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/tags/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
     
   </entry>
   
