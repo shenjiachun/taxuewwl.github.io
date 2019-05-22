@@ -4,23 +4,56 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>写给未来2017-执子之手不虚此行 | 朝·闻·道</title>
+    <title>研磨消息中间件Kafka之高可用相关机制 | 朝·闻·道</title>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
     
     <meta name="author" content="SnoWalker">
     
 
-    <meta name="keywords" content="我们的爱情">
-    <meta name="description" content="引子你说，我们写一封信吧。一封给未来的信，多年以后，当我们对生活已经习以为常的时候。回头看看，当初的自己是怎样的热烈盼望在一起的生活，或许会让平淡的生活变得多彩。">
+    <meta name="keywords" content="研磨Kafka">
+    <meta name="description" content="之前的文章中我们了解了Kafka的消息持久化及副本相关的策略，本文我们学习一下Kafka在高可用方面实现的技术方案。
+
+Kafka在高可用方面主要包含如下的机制：
+
+负载均衡与故障转移
+伸缩性
+
+我们对这两方面做详细的讲解。
+负载均衡与故障转移
+首先谈谈Kafka负载均衡的实现机理。
+
+Kafka集群在默认情况相爱，每台服务器都有均等的机会为客户端提供服务，能够将负载分散在集群中的所有机器上，避">
 <meta property="og:type" content="article">
-<meta property="og:title" content="写给未来2017-执子之手不虚此行">
-<meta property="og:url" content="http://wuwenliang.net/2017/02/08/写给未来2017-执子之手不虚此行/index.html">
+<meta property="og:title" content="研磨消息中间件Kafka之高可用相关机制">
+<meta property="og:url" content="http://wuwenliang.net/2019/05/21/研磨消息中间件Kafka之高可用相关机制/index.html">
 <meta property="og:site_name" content="朝·闻·道">
-<meta property="og:description" content="引子你说，我们写一封信吧。一封给未来的信，多年以后，当我们对生活已经习以为常的时候。回头看看，当初的自己是怎样的热烈盼望在一起的生活，或许会让平淡的生活变得多彩。">
-<meta property="og:updated_time" content="2017-02-08T10:37:48.000Z">
+<meta property="og:description" content="之前的文章中我们了解了Kafka的消息持久化及副本相关的策略，本文我们学习一下Kafka在高可用方面实现的技术方案。
+
+Kafka在高可用方面主要包含如下的机制：
+
+负载均衡与故障转移
+伸缩性
+
+我们对这两方面做详细的讲解。
+负载均衡与故障转移
+首先谈谈Kafka负载均衡的实现机理。
+
+Kafka集群在默认情况相爱，每台服务器都有均等的机会为客户端提供服务，能够将负载分散在集群中的所有机器上，避">
+<meta property="og:updated_time" content="2019-05-22T02:13:51.570Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="写给未来2017-执子之手不虚此行">
-<meta name="twitter:description" content="引子你说，我们写一封信吧。一封给未来的信，多年以后，当我们对生活已经习以为常的时候。回头看看，当初的自己是怎样的热烈盼望在一起的生活，或许会让平淡的生活变得多彩。">
+<meta name="twitter:title" content="研磨消息中间件Kafka之高可用相关机制">
+<meta name="twitter:description" content="之前的文章中我们了解了Kafka的消息持久化及副本相关的策略，本文我们学习一下Kafka在高可用方面实现的技术方案。
+
+Kafka在高可用方面主要包含如下的机制：
+
+负载均衡与故障转移
+伸缩性
+
+我们对这两方面做详细的讲解。
+负载均衡与故障转移
+首先谈谈Kafka负载均衡的实现机理。
+
+Kafka集群在默认情况相爱，每台服务器都有均等的机会为客户端提供服务，能够将负载分散在集群中的所有机器上，避">
 
     
     
@@ -78,14 +111,14 @@
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2017/02/08/写给未来2017-执子之手不虚此行/" title="写给未来2017-执子之手不虚此行" itemprop="url">写给未来2017-执子之手不虚此行</a>
+      <a href="/2019/05/21/研磨消息中间件Kafka之高可用相关机制/" title="研磨消息中间件Kafka之高可用相关机制" itemprop="url">研磨消息中间件Kafka之高可用相关机制</a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2017-02-08T09:57:38.000Z" itemprop="datePublished"> 发表于 2017-02-08</time>
+    <time datetime="2019-05-21T08:12:04.000Z" itemprop="datePublished"> 发表于 2019-05-21</time>
     
   </p>
 </header>
@@ -94,15 +127,34 @@
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#引子"><span class="toc-number">1.</span> <span class="toc-text">引子</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#关于现在"><span class="toc-number">2.</span> <span class="toc-text">关于现在</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#关于未来"><span class="toc-number">3.</span> <span class="toc-text">关于未来</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#一直想念"><span class="toc-number">4.</span> <span class="toc-text">一直想念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#继续前行"><span class="toc-number">5.</span> <span class="toc-text">继续前行</span></a></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#负载均衡与故障转移"><span class="toc-number">1.</span> <span class="toc-text">负载均衡与故障转移</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#伸缩性"><span class="toc-number">2.</span> <span class="toc-text">伸缩性</span></a></li></ol>
 		
 		</div>
 		
-		<h2 id="引子"><a href="#引子" class="headerlink" title="引子"></a>引子</h2><p>你说，我们写一封信吧。一封给未来的信，多年以后，当我们对生活已经习以为常的时候。回头看看，当初的自己是怎样的热烈盼望在一起的生活，或许会让平淡的生活变得多彩。<br><a id="more"></a><br>好啊，不错的提议呢，那现在就写吧。<br>你说，我们互相给对方写，当做情人节的礼物，或许更有意义。<br>看着你湖水一般清澈的眼睛，我笑着。<br>在一起两年了，一直都这么开心的你，总是有着新奇的点子，让我惊奇。</p>
-<h2 id="关于现在"><a href="#关于现在" class="headerlink" title="关于现在"></a>关于现在</h2><p>从大学校园一路走来的我们，经过了两年的相处，对彼此已经熟识。<br>我们是朋友，无话不谈，互为依靠。<br>我们是亲人，携手同行，相敬如宾。<br>从大学生活走过的我们曾经担心毕业之后不能经常相见。现在已经不再是困扰彼此的问题。<br>当我在实习公司实习半年的时候，你已经慢慢的习惯这样的生活节奏。<br>当我在北京学习的时候，我们仍旧能够相见如故。因为每天都有交流，因为我们珍惜在一起的每个时刻，即便一个月只能在一起两三天。我们已知足，因为深知这是目前我们能够经历的最好的生活，因为知道未来会比现在更好。因为一直相信会走到一起。<br>这个假期很开心，时间也很充足，近两个月的休息时间，让我们能够从容的享受在一起的时间。终于，我又要出发，去往北京，真正的投身工作之中，我们曾经担忧的未来变成了此刻的现实。<br>我们都没有担心，都没有害怕，我们只是更加珍惜相处的时间，依旧开心，更加从容。<br>再说一次吧，即便早已在一起呢喃千百遍，“我想和你生活啊，我的宝贝。”</p>
-<h2 id="关于未来"><a href="#关于未来" class="headerlink" title="关于未来"></a>关于未来</h2><p>记得曾经和你说过，当人从梦想回归现实的时候，这个人便成熟，而现实往往是生活的真实面目。<br>我想，当我们的生活变得更加现实的时候，我们才变得踏实，因为对未来的希望有了支撑，而不再是学生时代对未来痴痴的想象。<br>我去工作，你也要准备考研了，虽然做的事情不同，但目的是相同的。说的好听一点，我们是为了自己的梦想得以实现；说的现实一点，我们做的不就是为了在一起的时候更踏实，更安心吗？是为了让彼此不再惧怕来自生存的压力。<br>用世俗的话来讲，我要努力工作，为了得到来自你的家庭的认可，更是为了给我们一个好的生活环境和条件。</p>
-<h2 id="一直想念"><a href="#一直想念" class="headerlink" title="一直想念"></a>一直想念</h2><p>一直想你，当大脑不再充斥着工作的时候，当夜晚卸下伪装的面具的时候，总想听到你的声音，想象着手指拂过你的脸蛋，脖颈淡淡的香味是属于你的味道。<br>一直想你，哪怕你就在我的面前，十指相扣，即使没有对话，仅仅是注视彼此的眼睛，都有说不尽的话语流淌在空中。<br>想你，千千万万遍，没有尽头。<br>这句话你应该听我说起过，你是我大学生涯最大的收获，其次才是学业的完成，工作的落实。<br>你就是一连串0之前的那一个1。<br>你是我未来努力打拼的动力源泉。</p>
-<h2 id="继续前行"><a href="#继续前行" class="headerlink" title="继续前行"></a>继续前行</h2><p>执子之手，不虚此行。<br>此时，耳边响起了理查德克莱德曼的钢琴曲，眼前浮现出那些在一起的时光，属于我们两人的时光里，充满了开心和欢笑。即便有偶尔的小争论，或者偶尔的不愉快，都在一次次的沟通和交流中化解，并让我们更加坚定和了解彼此。<br>我不相信一见钟情，我不相信嘴里的誓言。你也一样。<br>但我们都相信的是良性的互动和沟通交流。<br>你说，每一天每一天在一起就是永远。<br>我深以为然。<br>我完全不怀疑以后的日子，我满怀期盼，未来的你我是怎样的幸福，我毫不怀疑。<br>宝贝，抓紧我的手，然后坚定的往前走，你是我的蝴蝶，我是你的翅膀。<br>宝贝，抓紧你的手，生活里除了挑战还有希望。<br>未来的我们，此刻的我站在2017的开端，双手合十，虔诚的许下愿望，祝未来的我们在平淡的生活里活出色彩。或许未来的我们会遇到一些困难，但是我们的话一定会共同面对并共同度过的吧，我始终相信这一点。<br>未来的我们，你们一定要幸福哦~就像现在的我们一样，哪怕生活平淡，哪怕容颜会老去，在我的眼里，未来的宝贝都是我始终要保护的公主，未来的我在宝贝眼里都是你坚强的骑士。王子和公主不一定会白头，但骑士和公主一定会长久。戎马天涯，为红颜不惧天下。<br>未来的我们，你们要幸福，你们会幸福。</p>
+		<blockquote>
+<p>之前的文章中我们了解了Kafka的消息持久化及副本相关的策略，本文我们学习一下Kafka在高可用方面实现的技术方案。</p>
+</blockquote>
+<p>Kafka在高可用方面主要包含如下的机制：</p>
+<ol>
+<li>负载均衡与故障转移</li>
+<li>伸缩性</li>
+</ol>
+<p>我们对这两方面做详细的讲解。</p>
+<h2 id="负载均衡与故障转移"><a href="#负载均衡与故障转移" class="headerlink" title="负载均衡与故障转移"></a>负载均衡与故障转移</h2><blockquote>
+<p>首先谈谈Kafka负载均衡的实现机理。</p>
+</blockquote>
+<p>Kafka集群在默认情况相爱，每台服务器都有均等的机会为客户端提供服务，能够将负载分散在集群中的所有机器上，避免了某个节点资源被耗尽的情况出现。</p>
+<p>Kafka实现负载均衡本质上是通过分区leader选举实现的，Kafka实现了一套智能的leader选举算法，可以保证集群内所有的机器都能以均等的机会分散各个分区（Partition）的leader，在整体上实现了负载均衡。</p>
+<blockquote>
+<p>接着讨论一下负载均衡的实现。</p>
+</blockquote>
+<p>故障转移，顾名思义，就是在服务器出现故障的时候，集群能够高效的检测到该failure，并立刻将该服务器上的服务自动转移到其他正常的服务节点上。</p>
+<p>一般情况下，故障转移是通过“心跳”或者“会话”机制来实现的，也就是当主服务器与备份服务器之间的心跳无法维持或者主服务器注册到服务中心的会话超时过期了，我们就认为主服务器此时已经down掉，集群需要自动的启动某个备份服务器替代down机的主服务器提供服务。</p>
+<p>对Kafka而言，故障转移采用的机制是会话机制。</p>
+<p>每一个Kafka服务器启动后都会用会话将自己注册到zookeeper上，当它出现故障，与zk之间的会话维持不了导致超时，则Kafka集群会再选取另外一台服务器代替该服务器继续提供服务。</p>
+<h2 id="伸缩性"><a href="#伸缩性" class="headerlink" title="伸缩性"></a>伸缩性</h2><p>如果服务需要具备伸缩性，那很大程度上表明该服务本身是无状态的，而Kafka服务器正是利用了无状态的思想，将状态的保存与管理交给分布式协调服务zookeeper来做，服务器本身便不需要做复杂的状态保持，降低了维护的复杂度。</p>
+<p>因为服务本身无状态，因此可以通过增减节点达到集群的扩缩容。</p>
+<p>当然Kafka本身并不是什么状态都不保持，它也保留了一部分必要的内部状态。</p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -110,13 +162,13 @@
 
 <div class="article-categories">
   <span></span>
-  <a class="article-category-link" href="/categories/与你同行/">与你同行</a>
+  <a class="article-category-link" href="/categories/研磨Kafka/">研磨Kafka</a>
 </div>
 
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/我们的爱情/">我们的爱情</a>
+  <span></span> <a href="/tags/研磨Kafka/">研磨Kafka</a>
   </div>
 
 </div>
@@ -125,7 +177,7 @@
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2017/02/08/写给未来2017-执子之手不虚此行/" data-title="写给未来2017-执子之手不虚此行 | 朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/05/21/研磨消息中间件Kafka之高可用相关机制/" data-title="研磨消息中间件Kafka之高可用相关机制 | 朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -138,19 +190,11 @@
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2017/02/15/代理模式总结及入职第一天感受/" title="代理模式总结及入职第一天感受">
-  <strong>上一篇：</strong><br/>
-  <span>
-  代理模式总结及入职第一天感受</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2017/01/30/基于Dubbox的分布式微博1-项目介绍/"  title="基于Dubbox的分布式微博1-项目介绍">
+<a href="/2019/05/17/研磨消息中间件kafka之消息持久化及副本/"  title="研磨消息中间件kafka之消息持久化及副本">
  <strong>下一篇：</strong><br/> 
- <span>基于Dubbox的分布式微博1-项目介绍
+ <span>研磨消息中间件kafka之消息持久化及副本
 </span>
 </a>
 </div>
@@ -159,7 +203,7 @@
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2017/02/08/写给未来2017-执子之手不虚此行/" data-title="写给未来2017-执子之手不虚此行" data-url="http://wuwenliang.net/2017/02/08/写给未来2017-执子之手不虚此行/"></div>
+	<div class="ds-thread" data-thread-key="2019/05/21/研磨消息中间件Kafka之高可用相关机制/" data-title="研磨消息中间件Kafka之高可用相关机制" data-url="http://wuwenliang.net/2019/05/21/研磨消息中间件Kafka之高可用相关机制/"></div>
 </section>
 
 
@@ -171,7 +215,7 @@
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#引子"><span class="toc-number">1.</span> <span class="toc-text">引子</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#关于现在"><span class="toc-number">2.</span> <span class="toc-text">关于现在</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#关于未来"><span class="toc-number">3.</span> <span class="toc-text">关于未来</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#一直想念"><span class="toc-number">4.</span> <span class="toc-text">一直想念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#继续前行"><span class="toc-number">5.</span> <span class="toc-text">继续前行</span></a></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#负载均衡与故障转移"><span class="toc-number">1.</span> <span class="toc-text">负载均衡与故障转移</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#伸缩性"><span class="toc-number">2.</span> <span class="toc-text">伸缩性</span></a></li></ol>
  
   </div>
 

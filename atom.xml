@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-05-17T06:46:24.294Z</updated>
+  <updated>2019-05-22T02:13:51.570Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,57 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>研磨消息中间件Kafka之高可用相关机制</title>
+    <link href="http://wuwenliang.net/2019/05/21/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6Kafka%E4%B9%8B%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9B%B8%E5%85%B3%E6%9C%BA%E5%88%B6/"/>
+    <id>http://wuwenliang.net/2019/05/21/研磨消息中间件Kafka之高可用相关机制/</id>
+    <published>2019-05-21T08:12:04.000Z</published>
+    <updated>2019-05-22T02:13:51.570Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>之前的文章中我们了解了Kafka的消息持久化及副本相关的策略，本文我们学习一下Kafka在高可用方面实现的技术方案。</p>
+</blockquote>
+<p>Kafka在高可用方面主要包含如下的机制：</p>
+<ol>
+<li>负载均衡与故障转移</li>
+<li>伸缩性</li>
+</ol>
+<p>我们对这两方面做详细的讲解。</p>
+<h2 id="负载均衡与故障转移"><a href="#负载均衡与故障转移" class="headerlink" title="负载均衡与故障转移"></a>负载均衡与故障转移</h2><blockquote>
+<p>首先谈谈Kafka负载均衡的实现机理。</p>
+</blockquote>
+<p>Kafka集群在默认情况相爱，每台服务器都有均等的机会为客户端提供服务，能够将负载分散在集群中的所有机器上，避免了某个节点资源被耗尽的情况出现。</p>
+<p>Kafka实现负载均衡本质上是通过分区leader选举实现的，Kafka实现了一套智能的leader选举算法，可以保证集群内所有的机器都能以均等的机会分散各个分区（Partition）的leader，在整体上实现了负载均衡。</p>
+<blockquote>
+<p>接着讨论一下负载均衡的实现。</p>
+</blockquote>
+<p>故障转移，顾名思义，就是在服务器出现故障的时候，集群能够高效的检测到该failure，并立刻将该服务器上的服务自动转移到其他正常的服务节点上。</p>
+<p>一般情况下，故障转移是通过“心跳”或者“会话”机制来实现的，也就是当主服务器与备份服务器之间的心跳无法维持或者主服务器注册到服务中心的会话超时过期了，我们就认为主服务器此时已经down掉，集群需要自动的启动某个备份服务器替代down机的主服务器提供服务。</p>
+<p>对Kafka而言，故障转移采用的机制是会话机制。</p>
+<p>每一个Kafka服务器启动后都会用会话将自己注册到zookeeper上，当它出现故障，与zk之间的会话维持不了导致超时，则Kafka集群会再选取另外一台服务器代替该服务器继续提供服务。</p>
+<h2 id="伸缩性"><a href="#伸缩性" class="headerlink" title="伸缩性"></a>伸缩性</h2><p>如果服务需要具备伸缩性，那很大程度上表明该服务本身是无状态的，而Kafka服务器正是利用了无状态的思想，将状态的保存与管理交给分布式协调服务zookeeper来做，服务器本身便不需要做复杂的状态保持，降低了维护的复杂度。</p>
+<p>因为服务本身无状态，因此可以通过增减节点达到集群的扩缩容。</p>
+<p>当然Kafka本身并不是什么状态都不保持，它也保留了一部分必要的内部状态。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;之前的文章中我们了解了Kafka的消息持久化及副本相关的策略，本文我们学习一下Kafka在高可用方面实现的技术方案。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Kafka在高可用方面主要包含如下的机制：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;负载均衡与故障转移
+    
+    </summary>
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/categories/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/tags/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+  </entry>
   
   <entry>
     <title>研磨消息中间件kafka之消息持久化及副本</title>
@@ -4410,264 +4461,6 @@ chargeWalletConsumerService.chargeWallet(new ChargeWalletRequestData());
       &lt;p&gt;在上文 &lt;a href=&quot;http://wuwenliang.net/2019/02/21/%E8%87%AA%E5%B7%B1%E5%86%99dubbo%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA%E5%B7%A5%E5%85%B7%E5%8C%85-%E5%AE%9E%E7%8E%B0dubbo%E8%B0%83%E7%94%A8%E4%B8%AD%E4%BC%A0%E9%80%92%E6%89%93%E5%8D%B0TraceId-%E5%BC%80%E5%8F%91%E5%8F%8A%E5%8E%9F%E7%90%86%E7%AF%87/&quot;&gt;文章链接&lt;/a&gt; 中，我从原理及代码实现的角度，完整的呈现了如何基于Dubbo的Filter及SPI机制开发TraceId的开发包。&lt;/p&gt;
 &lt;p&gt;本文中，我将着重从实战角度展现如何在项目中使用该工具包，实现TraceId的传递及日志打印。&lt;/p&gt;
 &lt;h2 id=&quot;引入依赖&quot;&gt;&lt;a href=&quot;#引入依赖&quot; class=&quot;headerlink&quot; title=&quot;引入依赖&quot;&gt;&lt;/a&gt;引入依赖&lt;/h2&gt;&lt;p&gt;将开发好的工具包（名为shield-dubbo-tracer，&lt;a href=&quot;https://github.com/TaXueWWL/shield-dubbo-tracer&quot;&gt;代码地址&lt;/a&gt;）打包并上传至私服，添加坐标到我们的dubbo项目的pom.xml中。&lt;strong&gt;注意&lt;/strong&gt;，由于工具包依赖dubbo，因此同时要添加dubbo的依赖，完整的依赖如下：（服务提供方和服务消费方中都需要添加）&lt;br&gt;&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/categories/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
-    
-    
-      <category term="自己写分布式组件系列" scheme="http://wuwenliang.net/tags/%E8%87%AA%E5%B7%B1%E5%86%99%E5%88%86%E5%B8%83%E5%BC%8F%E7%BB%84%E4%BB%B6%E7%B3%BB%E5%88%97/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>自己写dubbo链路追踪工具包-实现dubbo调用中传递打印TraceId[开发及原理篇]</title>
-    <link href="http://wuwenliang.net/2019/02/21/%E8%87%AA%E5%B7%B1%E5%86%99dubbo%E9%93%BE%E8%B7%AF%E8%BF%BD%E8%B8%AA%E5%B7%A5%E5%85%B7%E5%8C%85-%E5%AE%9E%E7%8E%B0dubbo%E8%B0%83%E7%94%A8%E4%B8%AD%E4%BC%A0%E9%80%92%E6%89%93%E5%8D%B0TraceId-%E5%BC%80%E5%8F%91%E5%8F%8A%E5%8E%9F%E7%90%86%E7%AF%87/"/>
-    <id>http://wuwenliang.net/2019/02/21/自己写dubbo链路追踪工具包-实现dubbo调用中传递打印TraceId-开发及原理篇/</id>
-    <published>2019-02-20T16:32:51.000Z</published>
-    <updated>2019-02-28T15:04:13.160Z</updated>
-    
-    <content type="html"><![CDATA[<p>在近期的两篇文章中，我带领大家使用springboot2.x整合了dubbo，完成了一个基础的服务化开发框架的搭建。文章链接如下</p>
-<p><a href="http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E4%BD%BF%E7%94%A8dubbo-spring-boot-starter/">[dubbo]springboot2.x整合dubbo之使用dubbo-spring-boot-starter
-</a></p>
-<p><a href="http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E6%95%B4%E5%90%88dubbo2-6-5/">[dubbo]springboot2.x整合dubbo之基于xml整合dubbo2.6.5
-</a></p>
-<p>但是在生产环境下还是存在一定的问题，比如我们关心的调用链追踪的问题。</p>
-<p>本文中，我将继续带领大家基于dubbo2.6.5开发一个轻量级的TraceId获取及传递工具包，实现在dubbo服务的提供方及消费方中 <strong>设置/获取/传递</strong> TraceId的需求。</p>
-<p><a href="https://github.com/TaXueWWL/shield-dubbo-tracer" target="_blank" rel="external">代码地址</a><br><a id="more"></a></p>
-<h2 id="需求描述"><a href="#需求描述" class="headerlink" title="需求描述"></a>需求描述</h2><p>通过dubbo的Filter及扩展点机制，开发TraceId获取及传递的工具包，实现在服务业务的上下游中对TraceId的 <strong>设置/获取/传递</strong> 的需求。</p>
-<h2 id="原理讲解"><a href="#原理讲解" class="headerlink" title="原理讲解"></a>原理讲解</h2><p>在编写代码之前，先对Filter机制和扩展点机制做一个简要的讲解，以便加深我们的理解，当然如果只是简单的整合使用该工具包，可以直接跳过这段，进入编码环节。</p>
-<h3 id="Filter机制简述"><a href="#Filter机制简述" class="headerlink" title="Filter机制简述"></a>Filter机制简述</h3><p>Dubbo中的Filter与我们在javaweb中的Filter的理解是类似的，都是在请求处理前后做一些通用的逻辑，Filter可以有多个支持层层嵌套。</p>
-<p>Dubbo官方针对Filter做了很多的原生支持，目前大致有20多个，包括我们熟知的RpcContext，accesslog等功能都是通过filter来实现的。</p>
-<p>开发一个自定的Filter很简单，只需要编写我们的Filter类，实现<strong>com.alibaba.dubbo.rpc.Filter</strong> 接口，重写其invoke(Invoker&lt;?&gt; invoker, Invocation invocation) 方法即可。</p>
-<p>具体的过程我将在下文展开讲解。</p>
-<h3 id="SPI机制简述"><a href="#SPI机制简述" class="headerlink" title="SPI机制简述"></a>SPI机制简述</h3><p>这里直接引用官网的描述：</p>
-<blockquote>
-<p>SPI 全称为 Service Provider Interface，是一种服务发现机制。SPI 的本质是将接口实现类的全限定名配置在文件中，并由服务加载器读取配置文件，加载实现类。这样可以在运行时，动态为接口替换实现类。正因此特性，我们可以很容易的通过 SPI 机制为我们的程序提供拓展功能。SPI 机制在第三方框架中也有所应用，比如 Dubbo 就是通过 SPI 机制加载所有的组件。不过，Dubbo 并未使用 Java 原生的 SPI 机制，而是对其进行了增强，使其能够更好的满足需求。</p>
-</blockquote>
-<p>Filter机制便是Dubbo中SPI的一个应用场景，Dubbo对java的原生SPI做了扩展，使Dubbo具备了更丰富的扩展性。</p>
-<p>Dubbo官方对Dubbo的定位是微内核架构，不想依赖三方框架如Spring、Guice等，这使得Dubbo的实现更加的优雅。</p>
-<blockquote>
-<p>通常微核心都会采用 Factory、IoC、OSGi 等方式管理插件生命周期。考虑 Dubbo 的适用面，不想强依赖 Spring 等 IoC 容器。自已造一个小的 IoC 容器，也觉得有点过度设计，所以打算采用最简单的 Factory 方式管理插件。–引用自《扩展点重构》</p>
-</blockquote>
-<p>具体的细节可以参考文章最后的参考链接。</p>
-<p>接下来就进入到我们的正式的设计编码环节。</p>
-<h2 id="编码实现"><a href="#编码实现" class="headerlink" title="编码实现"></a>编码实现</h2><p>首先建立一个maven工程，我将其命名为shield-dubbo-tracer。</p>
-<h3 id="依赖引入"><a href="#依赖引入" class="headerlink" title="依赖引入"></a>依赖引入</h3><p>在项目的pom.xml中引入必要的依赖，如下</p>
-<pre><code>&lt;properties&gt;
-    &lt;maven.compiler.source&gt;1.8&lt;/maven.compiler.source&gt;
-    &lt;maven.compiler.target&gt;1.8&lt;/maven.compiler.target&gt;
-    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
-    &lt;project.reporting.outputEncoding&gt;UTF-8&lt;/project.reporting.outputEncoding&gt;
-&lt;/properties&gt;
-
-&lt;dependencies&gt;
-    &lt;!-- https://mvnrepository.com/artifact/com.alibaba/dubbo --&gt;
-    &lt;dependency&gt;
-        &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
-        &lt;artifactId&gt;dubbo&lt;/artifactId&gt;
-        &lt;version&gt;2.6.5&lt;/version&gt;
-        &lt;scope&gt;provided &lt;/scope&gt;
-    &lt;/dependency&gt;
-    &lt;dependency&gt;
-        &lt;groupId&gt;junit&lt;/groupId&gt;
-        &lt;artifactId&gt;junit&lt;/artifactId&gt;
-        &lt;version&gt;4.11&lt;/version&gt;
-        &lt;scope&gt;test&lt;/scope&gt;
-    &lt;/dependency&gt;
-    &lt;dependency&gt;
-        &lt;groupId&gt;org.slf4j&lt;/groupId&gt;
-        &lt;artifactId&gt;slf4j-api&lt;/artifactId&gt;
-        &lt;version&gt;1.7.22&lt;/version&gt;
-    &lt;/dependency&gt;
-&lt;/dependencies&gt;
-</code></pre><p>由于我们的工具包是基于dubbo运行的，因此要添加dubbo依赖，这里使用provided的作用域的原因是：我们不确定工具包的调用方具体使用哪个版本的dubbo，因此在打包的时候不需要将dubbo依赖都打到最终的jar中，保证我们工程的纯洁性和轻量性，同时也能很好的避免调用方出现依赖冲突的可能。</p>
-<h3 id="编写TraceId生成类–TraceIdGenerator"><a href="#编写TraceId生成类–TraceIdGenerator" class="headerlink" title="编写TraceId生成类–TraceIdGenerator"></a>编写TraceId生成类–TraceIdGenerator</h3><p>首先定义一个名为TraceIdGenerator的类，该类主要用于生成TraceId，且类的作用域是public，可供外部直接调用，核心代码如下</p>
-<pre><code>public class TraceIdGenerator {
-
-    /**
-    * 消费端创建TraceId,并设置到线程上下文中
-    * 该方法只调用一次
-    * @return
-    */
-    public static String createTraceId() {
-        // 创建的同时就设置到上下文中
-        String traceId = getTraceid();
-        TraceIdUtil.setTraceId(traceId);
-        return traceId;
-    }
-
-    /**
-    * 生成32位traceId
-    * @return
-    */
-    private static String getTraceid() {
-        String result = &quot;&quot;;
-        String ip = &quot;&quot;;
-
-        // 获取本地ipv4地址
-        try {
-            InetAddress address = InetAddress.getLocalHost();
-            ip = address.getHostAddress();
-        } catch (Exception var5) {
-            return result;
-        }
-
-        // 根据.截取为String数组
-        String[] ipAddressInArray = ip.split(&quot;\\.&quot;);
-        // 拼装为字符串,将每一个元素转换为16进制
-        for(int i = 3; i &gt;= 0; --i) {
-            Integer id = Integer.parseInt(ipAddressInArray[3 - i]);
-            result = result + String.format(&quot;%02x&quot;, id);
-        }
-        // 拼装时间戳及随机数
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(&quot;yyyyMMddHHmmssSSS&quot;);
-        result = result + simpleDateFormat.format(new Date()) + UuidUtil.getUuid().substring(0, 7);
-        return result;
-    }
-
-}
-</code></pre><p>注释写的应当是比较详细的，这里总结一下，createTraceId()方法是提供给外部完成TraceId生成功能的。它内部调用私有静态方法getTraceid()生成32的一串TraceId的同时将该TraceId设置到本地线程的上下文TraceIdUtil中，并将该TraceId返回供后续业务使用。</p>
-<h3 id="编写线程上下文TraceIdUtil"><a href="#编写线程上下文TraceIdUtil" class="headerlink" title="编写线程上下文TraceIdUtil"></a>编写线程上下文TraceIdUtil</h3><p>上面提到，生成TraceId的同时设置到了TraceIdUtil中，TraceIdUtil可以认为是当前线程/当前线程子线程的TraceId的容器，具体代码如下</p>
-<pre><code>......
-/**使用InheritableThreadLocal便于在主子线程间传递参数*/
-private static final ThreadLocal&lt;String&gt; TRACE_ID = new InheritableThreadLocal&lt;&gt;();
-
-public TraceIdUtil() {
-}
-
-/**
- * 从当前线程局部变量获取TraceId
- * 首次调用该方法会生成traceId，后续每次都从线程上下文获取
- * @return
- */
-public static String getTraceId() {
-    return TRACE_ID.get();
-}
-
-public static void setTraceId(String traceId) {
-    TRACE_ID.set(traceId);
-}
-
-public static void removeTraceId() {
-    TRACE_ID.remove();
-}
-......
-</code></pre><p>有心的你可能发现了，我在这里使用了InheritableThreadLocal类作为TraceId保存的容器，之所以使用InheritableThreadLocal是要达到在当前线程的子线程中也能获取到TraceId的值，如果使用它的父类ThreadLocal则只能在当前线程获取到TraceId。关于InheritableThreadLocal的详细的介绍请自行参看文章末尾的参考链接中的《InheritableThreadLocal详解》一文，这里不再赘述。</p>
-<p>通过TraceIdUtil，我们能够实现</p>
-<ol>
-<li>将TraceId设置到当前线程的线程上下文中</li>
-<li>从当前线程上下文中获取TraceId</li>
-<li>从当前线程上下文中移除TraceId等的功能。</li>
-</ol>
-<h3 id="编写自定义的TraceIdFilter实现com-alibaba-dubbo-rpc-Filter接口"><a href="#编写自定义的TraceIdFilter实现com-alibaba-dubbo-rpc-Filter接口" class="headerlink" title="编写自定义的TraceIdFilter实现com.alibaba.dubbo.rpc.Filter接口"></a>编写自定义的TraceIdFilter实现com.alibaba.dubbo.rpc.Filter接口</h3><p>完成前面的准备工作，我们即将进行工具包开发的重头戏，实现自定义的TraceId传递Filter。</p>
-<p>编写类TraceIdFilter，实现接口com.alibaba.dubbo.rpc.Filter，重写其invoke方法。</p>
-<p>核心代码如下：</p>
-<pre><code>@Activate(group = {Constants.PROVIDER, Constants.CONSUMER})
-public class TraceIdFilter implements Filter {
-
-    ......
-    @Override
-    public Result invoke(Invoker&lt;?&gt; invoker, Invocation invocation) throws RpcException {
-        RpcContext rpcContext = RpcContext.getContext();
-        String traceId = &quot;&quot;;
-        if (rpcContext.isConsumerSide()) {
-            if (StringUtils.isBlank(TraceIdUtil.getTraceId())) {
-                // 根调用，生成TraceId
-                traceId = TraceIdGenerator.createTraceId();
-            } else {
-                // 后续调用，从Rpc上下文取出并设置到线程上下文
-                traceId = TraceIdUtil.getTraceId();
-            }
-            TraceIdUtil.setTraceId(traceId);
-            RpcContext.getContext().setAttachment(TraceIdConst.TRACE_ID, TraceIdUtil.getTraceId());
-        }
-        if (rpcContext.isProviderSide()) {
-            // 服务提供方，从Rpc上下文获取traceId
-            traceId = RpcContext.getContext().getAttachment(TraceIdConst.TRACE_ID);
-            TraceIdUtil.setTraceId(traceId);
-        }
-        Result result = invoker.invoke(invocation);
-        return result;
-    }
-    ......
-}
-</code></pre><p>这里简单先接单介绍下 <strong>@Activate</strong> 注解，该注解表示一个扩展是否被激活(即是否能够使用), 它可以放在类定义、方法之上。dubbo用它在spi扩展类定义上，表示这个扩展实现激活条件和时机。</p>
-<p>这里我将TraceIdFilter标注为</p>
-<pre><code>@Activate(group = {Constants.PROVIDER, Constants.CONSUMER})
-</code></pre><p>标识该拓展会在服务提供方和服务消费方同时生效。</p>
-<p>接下来，我们详细的梳理一下重写的invoke方法的逻辑。</p>
-<h4 id="ConsumerSide消费者侧核心逻辑"><a href="#ConsumerSide消费者侧核心逻辑" class="headerlink" title="ConsumerSide消费者侧核心逻辑"></a>ConsumerSide消费者侧核心逻辑</h4><p>首先获取到RpcContext上下文，判断当前调用者属于服务提供方还是服务消费方。</p>
-<p>如果是服务消费方，则从线程上下文TraceIdUtil中获取TraceId判断其是否为空。即如下的判断逻辑</p>
-<pre><code>if (StringUtils.isBlank(TraceIdUtil.getTraceId())) {
-</code></pre><p>如果判断返回true，表明当前是消费侧的根调用，且消费侧没有显式的生成TraceId，则我们的组件生成一个TraceId设置到当前线程的上下文，并将其通过RpcContext隐式传参的方式传递给后续的服务。代码为</p>
-<pre><code>TraceIdUtil.setTraceId(traceId);
-RpcContext.getContext().setAttachment(TraceIdConst.TRACE_ID, TraceIdUtil.getTraceId());
-</code></pre><p>如果线程上下文TraceIdUtil存在TraceId，表明当前消费端已经存在TraceId。</p>
-<p>因为存在TraceId，则我们直接从线程上下文中取出该TraceId，并通过RpcContext隐式传参方式传递给后续的服务，核心代码为</p>
-<pre><code>......
-traceId = TraceIdUtil.getTraceId();
-......
-TraceIdUtil.setTraceId(traceId);
-RpcContext.getContext().setAttachment(TraceIdConst.TRACE_ID, TraceIdUtil.getTraceId());
-</code></pre><h4 id="ProviderSide提供者侧核心逻辑"><a href="#ProviderSide提供者侧核心逻辑" class="headerlink" title="ProviderSide提供者侧核心逻辑"></a>ProviderSide提供者侧核心逻辑</h4><p>提供者侧的逻辑就比较容易了，提供者的角色主要就是对TraceId的读取。</p>
-<p>核心代码如下：</p>
-<pre><code>if (rpcContext.isProviderSide()) {
-    // 服务提供方，从Rpc上下文获取traceId
-    traceId = RpcContext.getContext().getAttachment(TraceIdConst.TRACE_ID);
-    TraceIdUtil.setTraceId(traceId);
-}
-</code></pre><p>可能这里你有疑问了，如果一个服务既是服务的提供者，又是消费者呢？该如何处理，其实在上文已经讲到了，如果它是提供方，则只需要从RpcContext上下文中读取TraceId进行使用即可。消费方的角色会在上述的消费者侧的逻辑处理，即读取TraceId，设置到当前线程，通过RpcContext隐式传递。</p>
-<p>到这里，我们就完成了TraceFilter的主要逻辑，通过</p>
-<pre><code>Result result = invoker.invoke(invocation);
-return result;
-</code></pre><p>使业务逻辑继续往下走即可。</p>
-<h3 id="编写配置META-INF-dubbo-com-alibaba-dubbo-rpc-Filter"><a href="#编写配置META-INF-dubbo-com-alibaba-dubbo-rpc-Filter" class="headerlink" title="编写配置META-INF/dubbo/com.alibaba.dubbo.rpc.Filter"></a>编写配置META-INF/dubbo/com.alibaba.dubbo.rpc.Filter</h3><p>最后一步是dubbo的SPI规范要求的，不能更改。</p>
-<p>在资源文件夹下创建 META-INF/dubbo 文件夹，在其中创建名为<strong>com.alibaba.dubbo.rpc.Filter</strong> 的文件，并编辑文件内容，在其中配置我们自定义的TraceIdFilter</p>
-<pre><code>traceIdFilter=com.snowalker.shield.dubbo.tracer.TraceIdFilter
-</code></pre><p>具体的文件包路径如下</p>
-<pre><code>src
-|-main
-    |-java
-        |-com
-            |-xxx
-                |-XxxFilter.java (实现Filter接口)
-    |-resources
-        |-META-INF
-            |-dubbo
-                |-org.apache.dubbo.rpc.Filter 
-                (纯文本文件，内容为：xxx=com.xxx.XxxFilter)
-</code></pre><p>要严格按照该路径进行开发和配置。</p>
-<h2 id="打包上传私服"><a href="#打包上传私服" class="headerlink" title="打包上传私服"></a>打包上传私服</h2><p>到这里我们便可以打包该工具包并上传至私服，在业务中使用了。后续我会将完整的代码整理并上传至我的github仓库，以便读者自行参考打包使用。</p>
-<pre><code>mvn clean deploy -Dmaven.test.skip=true
-</code></pre><h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文主要从开发及原理的角度，带领大家基于dubbo2.6.5实现了TraceId  <strong>设置/获取/传递</strong> 的需求，具有较高的实战价值。在下一篇中，我会以实际的案例展示如何在项目中使用该工具包，欢迎阅读。</p>
-<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="http://dubbo.apache.org/zh-cn/docs/dev/impls/filter.html" target="_blank" rel="external">dubbo官网：调用拦截扩展</a></p>
-<p><a href="http://dubbo.apache.org/zh-cn/docs/source_code_guide/dubbo-spi.html" target="_blank" rel="external">dubbo官网：DUBBO SPI介绍</a></p>
-<p><a href="http://dubbo.apache.org/zh-cn/docs/dev/principals/extension.html" target="_blank" rel="external">扩展点重构</a></p>
-<p><a href="https://www.jianshu.com/p/94ba4a918ff5" target="_blank" rel="external">InheritableThreadLocal详解</a></p>
-<p><a href="https://blog.csdn.net/hewenbo111/article/details/80487252" target="_blank" rel="external">InheritableThreadLocal——父线程传递本地变量到子线程的解决方式及分析</a></p>
-<p><a href="https://www.jianshu.com/p/e0774f965aa3" target="_blank" rel="external">TransmittableThreadLocal详解</a></p>
-<p><a href="https://www.cnblogs.com/wangzhuxing/p/9826555.html" target="_blank" rel="external">dubbo系列七、dubbo @Activate 注解使用和实现解析</a></p>
-<p><a href="https://my.oschina.net/LucasZhu/blog/2046356" target="_blank" rel="external">Dubbo链路追踪——生成全局ID（traceId）</a></p>
-<p><a href="https://www.cnblogs.com/hzzll/p/6738955.html" target="_blank" rel="external">maven中scope属性的介绍</a></p>
-<p><a href="https://blog.csdn.net/meegomeego/article/details/8726124" target="_blank" rel="external">%02x 格式化符号代表什么</a></p>
-<p><a href="https://blog.csdn.net/typ1805/article/details/82141983" target="_blank" rel="external">springboot整合dubbo报错No such extension traceIdFilter for filter/com.alibaba.dubbo.rpc.Filter</a></p>
-<h2 id="补充知识点：Maven中-DskipTests和-Dmaven-test-skip-true的区别"><a href="#补充知识点：Maven中-DskipTests和-Dmaven-test-skip-true的区别" class="headerlink" title="补充知识点：Maven中-DskipTests和-Dmaven.test.skip=true的区别"></a>补充知识点：Maven中-DskipTests和-Dmaven.test.skip=true的区别</h2><p>在使用mv编译、打包时为了跳过测试，会使用参数-DskipTests和-Dmaven.test.skip=true，这两个参数的主要区别是：</p>
-<pre><code>-DskipTests，不执行测试用例，但编译测试用例类生成相应的class文件至target/test-classes下。
-
--Dmaven.test.skip=true，不执行测试用例也不编译测试用例类。
-</code></pre>]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;在近期的两篇文章中，我带领大家使用springboot2.x整合了dubbo，完成了一个基础的服务化开发框架的搭建。文章链接如下&lt;/p&gt;
-&lt;p&gt;&lt;a href=&quot;http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E4%BD%BF%E7%94%A8dubbo-spring-boot-starter/&quot;&gt;[dubbo]springboot2.x整合dubbo之使用dubbo-spring-boot-starter
-&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;&lt;a href=&quot;http://wuwenliang.net/2019/02/20/dubbo-springboot2-x%E6%95%B4%E5%90%88dubbo%E4%B9%8B%E6%95%B4%E5%90%88dubbo2-6-5/&quot;&gt;[dubbo]springboot2.x整合dubbo之基于xml整合dubbo2.6.5
-&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;但是在生产环境下还是存在一定的问题，比如我们关心的调用链追踪的问题。&lt;/p&gt;
-&lt;p&gt;本文中，我将继续带领大家基于dubbo2.6.5开发一个轻量级的TraceId获取及传递工具包，实现在dubbo服务的提供方及消费方中 &lt;strong&gt;设置/获取/传递&lt;/strong&gt; TraceId的需求。&lt;/p&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/TaXueWWL/shield-dubbo-tracer&quot;&gt;代码地址&lt;/a&gt;&lt;br&gt;&lt;/p&gt;
     
     </summary>
     
