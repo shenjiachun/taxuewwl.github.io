@@ -115,10 +115,10 @@
   
   <entry>
     <title>研磨消息中间件kafka之消息持久化及副本</title>
-    <link href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%B6%88%E6%81%AF%E6%8C%81%E4%B9%85%E5%8C%96%E5%8F%8A%E5%89%AF%E6%9C%AC/"/>
-    <id>http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/</id>
-    <published>2019-05-17T05:55:55.000Z</published>
-    <updated>2019-05-17T06:46:24.294Z</updated>
+    <link href="http://wuwenliang.net/2019/05/19/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E6%B6%88%E6%81%AF%E6%8C%81%E4%B9%85%E5%8C%96%E5%8F%8A%E5%89%AF%E6%9C%AC/"/>
+    <id>http://wuwenliang.net/2019/05/19/研磨消息中间件kafka之消息持久化及副本/</id>
+    <published>2019-05-19T05:55:55.000Z</published>
+    <updated>2019-05-22T03:30:07.218Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>本文主要介绍Kafka的消息持久化策略及副本机制。</p>
@@ -140,7 +140,7 @@
 <h3 id="解析leader和follower"><a href="#解析leader和follower" class="headerlink" title="解析leader和follower"></a>解析leader和follower</h3><p>上文中我们提到Kafka的副本包括 leader副本和follower副本，与MySQL的主从机制不同，在Kafka的leader-follower体系中，同一时刻只有leader对外提供服务，follower只是起到冗余数据备份的作用，它与leader保持数据同步，并追随leader的状态进行自身状态的变更。</p>
 <p>当leader节点出现down机，集群会发生新的leader选举过程，在剩余的follower节点中选举一个作为新的leader角色并对外提供服务，从而保证集群的高可用性。</p>
 <p><strong>注意</strong> ：Kafka能够保证对于同一个分区（Partition，关于Partition会在后面的文章中讲解）下的多个replica一定不会分配在同一台broker上，通过这个规则，Kafka保证副本是有效且可靠的，实现了将鸡蛋存放在多个篮子中的目的。原理如图：</p>
-<p><img src="/2019/05/17/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png" alt="Kafka的leader-follower副本机制示意图"></p>
+<p><img src="/2019/05/19/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png" alt="Kafka的leader-follower副本机制示意图"></p>
 ]]></content>
     
     <summary type="html">
@@ -166,10 +166,10 @@
   
   <entry>
     <title>研磨消息中间件kafka之高吞吐低延时策略</title>
-    <link href="http://wuwenliang.net/2019/05/17/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E9%AB%98%E5%90%9E%E5%90%90%E4%BD%8E%E5%BB%B6%E6%97%B6%E7%AD%96%E7%95%A5/"/>
-    <id>http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/</id>
-    <published>2019-05-17T03:41:09.000Z</published>
-    <updated>2019-05-17T03:59:18.776Z</updated>
+    <link href="http://wuwenliang.net/2019/05/18/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6kafka%E4%B9%8B%E9%AB%98%E5%90%9E%E5%90%90%E4%BD%8E%E5%BB%B6%E6%97%B6%E7%AD%96%E7%95%A5/"/>
+    <id>http://wuwenliang.net/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/</id>
+    <published>2019-05-18T03:41:09.000Z</published>
+    <updated>2019-05-22T03:30:00.150Z</updated>
     
     <content type="html"><![CDATA[<blockquote>
 <p>提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。</p>
@@ -187,7 +187,7 @@
 <p>正因为Kafka采用的是磁盘顺序访问方式，所以其消息发送的吞吐量很高，实际使用中达到每秒写入数万到数十万条消息是很轻松的。</p>
 <h3 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h3><p>Kafka对消息读取时，首先尝试从OS的pageCache中读取，读取成功则将消息通过页缓存直接发送到网络的Socket上。该过程利用了Linux平台上的sendfile系统调用实现，该技术的核心原理便是零拷贝（Zero Copy）。</p>
 <p>零拷贝的原理示意图如下:</p>
-<p><img src="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png" alt="零拷贝图示"></p>
+<p><img src="/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png" alt="零拷贝图示"></p>
 <h4 id="详解零拷贝"><a href="#详解零拷贝" class="headerlink" title="详解零拷贝"></a>详解零拷贝</h4><p>接下来对该图做一个较为详细的讲解：</p>
 <p>传统Linux操作系统在进行I/O操作时是通过数据的复制（或者说拷贝）实现的，在零拷贝技术出现之前，一个I/O操作会对数据进行多次拷贝，该过程涉及到内核态与用户态的上下文切换，对于CPU的压力较大，无法做到高效率的进行数据的传输。</p>
 <p>而零拷贝就是为改善该问题而存在的，当内核驱动程序通过I/O处理数据(如：从磁盘中读取文件)时，不需要进行上下文切换，即：无需将数据从内核缓冲区（PageCache）复制到应用程序内存（即用户态），而是直接在内核空间中从内核缓冲区拷贝到Socket缓冲区。节省了内核缓冲区与用户态应用程序内存之间的数据拷贝，</p>

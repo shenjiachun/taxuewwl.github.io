@@ -21,7 +21,7 @@ Kafka支持对消费过的消息进行“消息重演(Message Replay)”，而�
 Kafka">
 <meta property="og:type" content="article">
 <meta property="og:title" content="研磨消息中间件kafka之消息持久化及副本">
-<meta property="og:url" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/index.html">
+<meta property="og:url" content="http://wuwenliang.net/2019/05/19/研磨消息中间件kafka之消息持久化及副本/index.html">
 <meta property="og:site_name" content="朝·闻·道">
 <meta property="og:description" content="本文主要介绍Kafka的消息持久化策略及副本机制。
 
@@ -31,8 +31,8 @@ Kafka通过消息持久化解耦了消息的生产者和消费者，这也是采
 Kafka支持对消费过的消息进行“消息重演(Message Replay)”，而重演的基础就是实现消息持久化。
 
 Kafka">
-<meta property="og:image" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png">
-<meta property="og:updated_time" content="2019-05-17T06:46:24.294Z">
+<meta property="og:image" content="http://wuwenliang.net/2019/05/19/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png">
+<meta property="og:updated_time" content="2019-05-22T03:30:07.218Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="研磨消息中间件kafka之消息持久化及副本">
 <meta name="twitter:description" content="本文主要介绍Kafka的消息持久化策略及副本机制。
@@ -43,7 +43,7 @@ Kafka通过消息持久化解耦了消息的生产者和消费者，这也是采
 Kafka支持对消费过的消息进行“消息重演(Message Replay)”，而重演的基础就是实现消息持久化。
 
 Kafka">
-<meta name="twitter:image" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png">
+<meta name="twitter:image" content="http://wuwenliang.net/2019/05/19/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png">
 
     
     
@@ -101,14 +101,14 @@ Kafka">
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2019/05/17/研磨消息中间件kafka之消息持久化及副本/" title="研磨消息中间件kafka之消息持久化及副本" itemprop="url">研磨消息中间件kafka之消息持久化及副本</a>
+      <a href="/2019/05/19/研磨消息中间件kafka之消息持久化及副本/" title="研磨消息中间件kafka之消息持久化及副本" itemprop="url">研磨消息中间件kafka之消息持久化及副本</a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2019-05-17T05:55:55.000Z" itemprop="datePublished"> 发表于 2019-05-17</time>
+    <time datetime="2019-05-19T05:55:55.000Z" itemprop="datePublished"> 发表于 2019-05-19</time>
     
   </p>
 </header>
@@ -141,7 +141,7 @@ Kafka">
 <h3 id="解析leader和follower"><a href="#解析leader和follower" class="headerlink" title="解析leader和follower"></a>解析leader和follower</h3><p>上文中我们提到Kafka的副本包括 leader副本和follower副本，与MySQL的主从机制不同，在Kafka的leader-follower体系中，同一时刻只有leader对外提供服务，follower只是起到冗余数据备份的作用，它与leader保持数据同步，并追随leader的状态进行自身状态的变更。</p>
 <p>当leader节点出现down机，集群会发生新的leader选举过程，在剩余的follower节点中选举一个作为新的leader角色并对外提供服务，从而保证集群的高可用性。</p>
 <p><strong>注意</strong> ：Kafka能够保证对于同一个分区（Partition，关于Partition会在后面的文章中讲解）下的多个replica一定不会分配在同一台broker上，通过这个规则，Kafka保证副本是有效且可靠的，实现了将鸡蛋存放在多个篮子中的目的。原理如图：</p>
-<p><img src="/2019/05/17/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png" alt="Kafka的leader-follower副本机制示意图"></p>
+<p><img src="/2019/05/19/研磨消息中间件kafka之消息持久化及副本/./kafka-replica.png" alt="Kafka的leader-follower副本机制示意图"></p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -164,7 +164,7 @@ Kafka">
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/" data-title="研磨消息中间件kafka之消息持久化及副本 | 朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/05/19/研磨消息中间件kafka之消息持久化及副本/" data-title="研磨消息中间件kafka之消息持久化及副本 | 朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -187,7 +187,7 @@ Kafka">
 
 
 <div class="next">
-<a href="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/"  title="研磨消息中间件kafka之高吞吐低延时策略">
+<a href="/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/"  title="研磨消息中间件kafka之高吞吐低延时策略">
  <strong>下一篇：</strong><br/> 
  <span>研磨消息中间件kafka之高吞吐低延时策略
 </span>
@@ -198,7 +198,7 @@ Kafka">
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2019/05/17/研磨消息中间件kafka之消息持久化及副本/" data-title="研磨消息中间件kafka之消息持久化及副本" data-url="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之消息持久化及副本/"></div>
+	<div class="ds-thread" data-thread-key="2019/05/19/研磨消息中间件kafka之消息持久化及副本/" data-title="研磨消息中间件kafka之消息持久化及副本" data-url="http://wuwenliang.net/2019/05/19/研磨消息中间件kafka之消息持久化及副本/"></div>
 </section>
 
 

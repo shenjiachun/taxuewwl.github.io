@@ -19,7 +19,7 @@
 由于Kafk">
 <meta property="og:type" content="article">
 <meta property="og:title" content="研磨消息中间件kafka之高吞吐低延时策略">
-<meta property="og:url" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/index.html">
+<meta property="og:url" content="http://wuwenliang.net/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/index.html">
 <meta property="og:site_name" content="朝·闻·道">
 <meta property="og:description" content="提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。
 
@@ -27,8 +27,8 @@
 
 由于页缓存是OS在内存中分配的，因此消息写入速度很快；
 由于Kafk">
-<meta property="og:image" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png">
-<meta property="og:updated_time" content="2019-05-17T03:59:18.776Z">
+<meta property="og:image" content="http://wuwenliang.net/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png">
+<meta property="og:updated_time" content="2019-05-22T03:30:00.150Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="研磨消息中间件kafka之高吞吐低延时策略">
 <meta name="twitter:description" content="提升Kafka对消息处理的吞吐量及低延时主要通过磁盘顺序写、零拷贝（zero copy）以及利用页缓存(Page Cache)实现。下面我们进行具体说明。
@@ -37,7 +37,7 @@
 
 由于页缓存是OS在内存中分配的，因此消息写入速度很快；
 由于Kafk">
-<meta name="twitter:image" content="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png">
+<meta name="twitter:image" content="http://wuwenliang.net/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png">
 
     
     
@@ -95,14 +95,14 @@
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/" title="研磨消息中间件kafka之高吞吐低延时策略" itemprop="url">研磨消息中间件kafka之高吞吐低延时策略</a>
+      <a href="/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/" title="研磨消息中间件kafka之高吞吐低延时策略" itemprop="url">研磨消息中间件kafka之高吞吐低延时策略</a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2019-05-17T03:41:09.000Z" itemprop="datePublished"> 发表于 2019-05-17</time>
+    <time datetime="2019-05-18T03:41:09.000Z" itemprop="datePublished"> 发表于 2019-05-18</time>
     
   </p>
 </header>
@@ -131,7 +131,7 @@
 <p>正因为Kafka采用的是磁盘顺序访问方式，所以其消息发送的吞吐量很高，实际使用中达到每秒写入数万到数十万条消息是很轻松的。</p>
 <h3 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h3><p>Kafka对消息读取时，首先尝试从OS的pageCache中读取，读取成功则将消息通过页缓存直接发送到网络的Socket上。该过程利用了Linux平台上的sendfile系统调用实现，该技术的核心原理便是零拷贝（Zero Copy）。</p>
 <p>零拷贝的原理示意图如下:</p>
-<p><img src="/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png" alt="零拷贝图示"></p>
+<p><img src="/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/./zerocopy.png" alt="零拷贝图示"></p>
 <h4 id="详解零拷贝"><a href="#详解零拷贝" class="headerlink" title="详解零拷贝"></a>详解零拷贝</h4><p>接下来对该图做一个较为详细的讲解：</p>
 <p>传统Linux操作系统在进行I/O操作时是通过数据的复制（或者说拷贝）实现的，在零拷贝技术出现之前，一个I/O操作会对数据进行多次拷贝，该过程涉及到内核态与用户态的上下文切换，对于CPU的压力较大，无法做到高效率的进行数据的传输。</p>
 <p>而零拷贝就是为改善该问题而存在的，当内核驱动程序通过I/O处理数据(如：从磁盘中读取文件)时，不需要进行上下文切换，即：无需将数据从内核缓冲区（PageCache）复制到应用程序内存（即用户态），而是直接在内核空间中从内核缓冲区拷贝到Socket缓冲区。节省了内核缓冲区与用户态应用程序内存之间的数据拷贝，</p>
@@ -168,7 +168,7 @@
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/" data-title="研磨消息中间件kafka之高吞吐低延时策略 | 朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/" data-title="研磨消息中间件kafka之高吞吐低延时策略 | 朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -182,7 +182,7 @@
 <nav class="article-nav clearfix">
  
  <div class="prev" >
- <a href="/2019/05/17/研磨消息中间件kafka之消息持久化及副本/" title="研磨消息中间件kafka之消息持久化及副本">
+ <a href="/2019/05/19/研磨消息中间件kafka之消息持久化及副本/" title="研磨消息中间件kafka之消息持久化及副本">
   <strong>上一篇：</strong><br/>
   <span>
   研磨消息中间件kafka之消息持久化及副本</span>
@@ -202,7 +202,7 @@
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/" data-title="研磨消息中间件kafka之高吞吐低延时策略" data-url="http://wuwenliang.net/2019/05/17/研磨消息中间件kafka之高吞吐低延时策略/"></div>
+	<div class="ds-thread" data-thread-key="2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/" data-title="研磨消息中间件kafka之高吞吐低延时策略" data-url="http://wuwenliang.net/2019/05/18/研磨消息中间件kafka之高吞吐低延时策略/"></div>
 </section>
 
 
