@@ -1362,7 +1362,7 @@ sendMessage.setKeys(&quot;OD0000000001&quot;);
     <link href="http://wuwenliang.net/2019/03/28/%E8%B7%9F%E6%88%91%E5%AD%A6RocketMQ%E4%B9%8B%E6%B6%88%E6%81%AF%E9%87%8D%E8%AF%95/"/>
     <id>http://wuwenliang.net/2019/03/28/跟我学RocketMQ之消息重试/</id>
     <published>2019-03-28T01:35:10.000Z</published>
-    <updated>2019-03-28T08:07:24.492Z</updated>
+    <updated>2019-05-29T01:43:05.078Z</updated>
     
     <content type="html"><![CDATA[<p>本文中，我将讲解RocketMQ使用过程中，如何进行消息重试。</p>
 <p>首先，我们需要明确，只有当消费模式为 <strong>MessageModel.CLUSTERING(集群模式)</strong> 时，Broker才会自动进行重试，对于广播消息是不会重试的。</p>
@@ -1470,8 +1470,112 @@ sendMessage.setKeys(&quot;OD0000000001&quot;);
 </tbody>
 </table>
 <p>可以看到，RocketMQ采用了“时间衰减策略”进行消息的重复投递，即重试次数越多，消息消费成功的可能性越小。</p>
-<p>默认的处理机制中，如果我们只对消息做重复消费，达到最大重试次数之后消息就进入死信队列了。</p>
-<h3 id="死信的业务处理方式"><a href="#死信的业务处理方式" class="headerlink" title="死信的业务处理方式"></a>死信的业务处理方式</h3><p>我们也可以根据业务的需要，定义消费的最大重试次数，每次消费的时候判断当前消费次数是否等于最大重试次数的阈值。</p>
+<h3 id="【源码分析】"><a href="#【源码分析】" class="headerlink" title="【源码分析】"></a>【源码分析】</h3><p>在RocketMQ的客户端源码DefaultMQPushConsumerImpl.java中，对重试机制做了说明，源码如下:</p>
+<pre><code>private int getMaxReconsumeTimes() {
+    // default reconsume times: 16
+    if (this.defaultMQPushConsumer.getMaxReconsumeTimes() == -1) {
+        return 16;
+    } else {
+        return this.defaultMQPushConsumer.getMaxReconsumeTimes();
+    }
+}
+</code></pre><p>解释下，首先判断消费端有没有显式设置最大重试次数 MaxReconsumeTimes， 如果没有，则设置默认重试次数为16，否则以设置的最大重试次数为准。</p>
+<p>当消息消费失败，服务端会发起消费重试，具体逻辑在broker源码的 SendMessageProcessor.java 中的consumerSendMsgBack方法中涉及，源码如下：</p>
+<pre><code>if (msgExt.getReconsumeTimes() &gt;= maxReconsumeTimes
+    || delayLevel &lt; 0) {
+    newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
+    queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+
+    topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+        DLQ_NUMS_PER_GROUP,
+        PermName.PERM_WRITE, 0
+    );
+    if (null == topicConfig) {
+        response.setCode(ResponseCode.SYSTEM_ERROR);
+        response.setRemark(&quot;topic[&quot; + newTopic + &quot;] not exist&quot;);
+        return response;
+    }
+} else {
+    if (0 == delayLevel) {
+        delayLevel = 3 + msgExt.getReconsumeTimes();
+    }
+
+    msgExt.setDelayTimeLevel(delayLevel);
+}
+</code></pre><p>判断消息当前重试次数是否大于等于最大重试次数，如果达到最大重试次数，或者配置的重试级别小于0，则获取死信队列的Topic，后续将超时的消息send到死信队列中。</p>
+<p>正常的消息会进入else分支，对于首次重试的消息，默认的delayLevel是0，rocketMQ会将给该level + 3，也就是加到3，这就是说，如果没有显示的配置延时级别，消息消费重试首次，是延迟了第三个级别发起的重试，从表格中看也就是距离首次发送10s后重试。</p>
+<p>当延时级别设置完成，刷新消息的重试次数为当前次数加1，broker将该消息刷盘，逻辑如下</p>
+<pre><code>MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+msgInner.setTopic(newTopic);
+msgInner.setBody(msgExt.getBody());
+msgInner.setFlag(msgExt.getFlag());
+MessageAccessor.setProperties(msgInner, msgExt.getProperties());
+msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
+
+msgInner.setQueueId(queueIdInt);
+msgInner.setSysFlag(msgExt.getSysFlag());
+msgInner.setBornTimestamp(msgExt.getBornTimestamp());
+msgInner.setBornHost(msgExt.getBornHost());
+msgInner.setStoreHost(this.getStoreHost());
+// 刷新消息的重试次数为当前次数加1
+msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
+
+String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
+MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
+// 消息刷盘
+PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
+</code></pre><p>那么什么是msgInner呢，即：MessageExtBrokerInner，也就是对重试的消息，rocketMQ会创建一个新的 <strong>MessageExtBrokerInner</strong> 对象，它实际上是继承了MessageExt。</p>
+<p>我们继续进入消息刷盘逻辑，即putMessage(msgInner)方法，实现类为：DefaultMessageStore.java, 核心代码如下：</p>
+<pre><code>long beginTime = this.getSystemClock().now();
+PutMessageResult result = this.commitLog.putMessage(msg);
+</code></pre><p>主要关注 <strong>this.commitLog.putMessage(msg);</strong> 这句代码，通过commitLog我们可以认为这里是真实刷盘操作，也就是消息被持久化了。</p>
+<p>我们继续进入commitLog的putMessage方法，看到如下核心代码段：</p>
+<pre><code>if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
+    || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+    // 处理延时级别
+    if (msg.getDelayTimeLevel() &gt; 0) {
+        if (msg.getDelayTimeLevel() &gt; this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel()) {
+            msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
+        }
+        // 更换Topic
+        topic = ScheduleMessageService.SCHEDULE_TOPIC;
+        // 队列ID为延迟级别-1
+        queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+
+        // Backup real topic, queueId
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+
+        // 重置topic及queueId
+        msg.setTopic(topic);
+        msg.setQueueId(queueId);
+    }
+}
+
+ScheduleMessageService.java
+public static int delayLevel2QueueId(final int delayLevel) {
+    return delayLevel - 1;
+}   
+</code></pre><p>可以看到，如果是重试消息，在进行延时级别判断时候，返回true，则进入分支逻辑，通过这段逻辑我们可以知道，对于重试的消息，rocketMQ并不会从原队列中获取消息，而是创建了一个新的Topic进行消息存储的。也就是代码中的SCHEDULE_TOPIC，看一下具体是什么内容</p>
+<pre><code>public static final String SCHEDULE_TOPIC = &quot;SCHEDULE_TOPIC_XXXX&quot;;
+</code></pre><p>emmm，这个名字比较有意思，就叫 <strong>SCHEDULE_TOPIC_XXXX</strong>。</p>
+<p>到这里我们可以得到一个结论：</p>
+<blockquote>
+<p>对于所有消费者消费失败的消息，rocketMQ都会把重试的消息 重新new出来（即上文提到的MessageExtBrokerInner对象），然后投递到主题 <strong>SCHEDULE_TOPIC_XXXX</strong> 下的队列中，然后由定时任务进行调度重试，而重试的周期符合我们在上文中提到的delayLevel周期，也就是：</p>
+</blockquote>
+<pre><code>MessageStoreConfig.java
+// 消息延迟级别定义
+private String messageDelayLevel = &quot;1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h&quot;;
+</code></pre><p>同时为了保证消息可被找到，也会将原先的topic存储到properties中，也就是如下这段代码</p>
+<pre><code>// Backup real topic, queueId
+MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
+MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
+msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));    
+</code></pre><p>这里将原先的topic和队列id做了备份。</p>
+<h3 id="死信的业务处理方式"><a href="#死信的业务处理方式" class="headerlink" title="死信的业务处理方式"></a>死信的业务处理方式</h3><p>默认的处理机制中，如果我们只对消息做重复消费，达到最大重试次数之后消息就进入死信队列了。</p>
+<p>我们也可以根据业务的需要，定义消费的最大重试次数，每次消费的时候判断当前消费次数是否等于最大重试次数的阈值。</p>
 <p>如：重试三次就认为当前业务存在异常，继续重试下去也没有意义了，那么我们就可以将当前的这条消息进行提交，返回broker状态<strong>ConsumeConcurrentlyStatus.CONSUME_SUCCES</strong>，让消息不再重发，同时将该消息存入我们业务自定义的死信消息表，将业务参数入库，相关的运营通过查询死信表来进行对应的业务补偿操作。</p>
 <h3 id="发送失败如何重试"><a href="#发送失败如何重试" class="headerlink" title="发送失败如何重试"></a>发送失败如何重试</h3><p>上文中，我们讲解了对于消费失败的重试策略，这个章节中我们来了解下消息发送失败如何进行重试。</p>
 <p>当发生网络抖动等异常情况，Producer生产者侧往broker发送消息失败，即：生产者侧没收到broker返回的ACK，导致Consumer无法进行消息消费，这时RocketMQ会进行发送重试。</p>
