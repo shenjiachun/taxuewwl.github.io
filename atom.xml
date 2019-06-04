@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-06-04T06:06:31.790Z</updated>
+  <updated>2019-06-04T06:11:31.263Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -16,15 +16,13 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
-    <title></title>
-    <link href="http://wuwenliang.net/2019/05/23/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6Kafka%E4%B9%8B%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1/"/>
-    <id>http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/</id>
-    <published>2019-05-23T08:28:03.939Z</published>
-    <updated>2019-06-04T06:06:31.790Z</updated>
+    <title>研磨消息中间件Kafka之保证消息不丢失</title>
+    <link href="http://wuwenliang.net/2019/06/04/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6Kafka%E4%B9%8B%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1/"/>
+    <id>http://wuwenliang.net/2019/06/04/研磨消息中间件Kafka之保证消息不丢失/</id>
+    <published>2019-06-04T06:07:03.000Z</published>
+    <updated>2019-06-04T06:11:31.263Z</updated>
     
-    <content type="html"><![CDATA[<hr>
-<p>title: 研磨消息中间件Kafka之保证消息不丢失<br>date: 2019-06-04 14:07:03<br>categories: 研磨Kafka<br>tags: 研磨Kafka</p>
-<h2 id="keywords-研磨Kafka"><a href="#keywords-研磨Kafka" class="headerlink" title="keywords: 研磨Kafka"></a>keywords: 研磨Kafka</h2><blockquote>
+    <content type="html"><![CDATA[<blockquote>
 <p>本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。</p>
 </blockquote>
 <p>Kafka通过ISR机制保证了消息发送的可靠性。</p>
@@ -54,9 +52,7 @@
     
     <summary type="html">
     
-      &lt;hr&gt;
-&lt;p&gt;title: 研磨消息中间件Kafka之保证消息不丢失&lt;br&gt;date: 2019-06-04 14:07:03&lt;br&gt;categories: 研磨Kafka&lt;br&gt;tags: 研磨Kafka&lt;/p&gt;
-&lt;h2 id=&quot;keywords-研磨Kafka&quot;&gt;&lt;a href=&quot;#keywords-研磨Kafka&quot; class=&quot;headerlink&quot; title=&quot;keywords: 研磨Kafka&quot;&gt;&lt;/a&gt;keywords: 研磨Kafka&lt;/h2&gt;&lt;blockquote&gt;
+      &lt;blockquote&gt;
 &lt;p&gt;本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;Kafka通过ISR机制保证了消息发送的可靠性。&lt;/p&gt;
@@ -76,6 +72,10 @@
     
     </summary>
     
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/categories/%E7%A0%94%E7%A3%A8Kafka/"/>
+    
+    
+      <category term="研磨Kafka" scheme="http://wuwenliang.net/tags/%E7%A0%94%E7%A3%A8Kafka/"/>
     
   </entry>
   

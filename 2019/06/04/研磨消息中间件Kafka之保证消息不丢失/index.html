@@ -4,41 +4,47 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>朝·闻·道</title>
+    <title>研磨消息中间件Kafka之保证消息不丢失 | 朝·闻·道</title>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
     
     <meta name="author" content="SnoWalker">
     
 
-    
-    <meta name="description" content="title: 研磨消息中间件Kafka之保证消息不丢失date: 2019-06-04 14:07:03categories: 研磨Kafkatags: 研磨Kafka
-keywords: 研磨Kafka
-本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
+    <meta name="keywords" content="研磨Kafka">
+    <meta name="description" content="本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
 
 Kafka通过ISR机制保证了消息发送的可靠性。
 首先介绍下什么是ISR。
-I">
+ISR
+ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。
+
+我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。
+在Kafka中，分区">
 <meta property="og:type" content="article">
-<meta property="og:title" content="朝·闻·道">
-<meta property="og:url" content="http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/index.html">
+<meta property="og:title" content="研磨消息中间件Kafka之保证消息不丢失">
+<meta property="og:url" content="http://wuwenliang.net/2019/06/04/研磨消息中间件Kafka之保证消息不丢失/index.html">
 <meta property="og:site_name" content="朝·闻·道">
-<meta property="og:description" content="title: 研磨消息中间件Kafka之保证消息不丢失date: 2019-06-04 14:07:03categories: 研磨Kafkatags: 研磨Kafka
-keywords: 研磨Kafka
-本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
+<meta property="og:description" content="本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
 
 Kafka通过ISR机制保证了消息发送的可靠性。
 首先介绍下什么是ISR。
-I">
-<meta property="og:updated_time" content="2019-06-04T06:06:31.790Z">
+ISR
+ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。
+
+我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。
+在Kafka中，分区">
+<meta property="og:updated_time" content="2019-06-04T06:11:31.263Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="朝·闻·道">
-<meta name="twitter:description" content="title: 研磨消息中间件Kafka之保证消息不丢失date: 2019-06-04 14:07:03categories: 研磨Kafkatags: 研磨Kafka
-keywords: 研磨Kafka
-本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
+<meta name="twitter:title" content="研磨消息中间件Kafka之保证消息不丢失">
+<meta name="twitter:description" content="本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
 
 Kafka通过ISR机制保证了消息发送的可靠性。
 首先介绍下什么是ISR。
-I">
+ISR
+ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。
+
+我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。
+在Kafka中，分区">
 
     
     
@@ -96,14 +102,14 @@ I">
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" title="" itemprop="url"></a>
+      <a href="/2019/06/04/研磨消息中间件Kafka之保证消息不丢失/" title="研磨消息中间件Kafka之保证消息不丢失" itemprop="url">研磨消息中间件Kafka之保证消息不丢失</a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2019-05-23T08:28:03.939Z" itemprop="datePublished"> 发表于 2019-05-23</time>
+    <time datetime="2019-06-04T06:07:03.000Z" itemprop="datePublished"> 发表于 2019-06-04</time>
     
   </p>
 </header>
@@ -112,13 +118,11 @@ I">
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#keywords-研磨Kafka"><span class="toc-number">1.</span> <span class="toc-text">keywords: 研磨Kafka</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ISR"><span class="toc-number">1.1.</span> <span class="toc-text">ISR</span></a></li></ol></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#ISR"><span class="toc-number">1.</span> <span class="toc-text">ISR</span></a></li></ol>
 		
 		</div>
 		
-		<hr>
-<p>title: 研磨消息中间件Kafka之保证消息不丢失<br>date: 2019-06-04 14:07:03<br>categories: 研磨Kafka<br>tags: 研磨Kafka</p>
-<h2 id="keywords-研磨Kafka"><a href="#keywords-研磨Kafka" class="headerlink" title="keywords: 研磨Kafka"></a>keywords: 研磨Kafka</h2><blockquote>
+		<blockquote>
 <p>本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。</p>
 </blockquote>
 <p>Kafka通过ISR机制保证了消息发送的可靠性。</p>
@@ -149,6 +153,16 @@ I">
 		<footer class="article-footer clearfix">
 <div class="article-catetags">
 
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/研磨Kafka/">研磨Kafka</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/研磨Kafka/">研磨Kafka</a>
+  </div>
 
 </div>
 
@@ -156,7 +170,7 @@ I">
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" data-title="朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/06/04/研磨消息中间件Kafka之保证消息不丢失/" data-title="研磨消息中间件Kafka之保证消息不丢失 | 朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -182,7 +196,7 @@ I">
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" data-title="" data-url="http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/"></div>
+	<div class="ds-thread" data-thread-key="2019/06/04/研磨消息中间件Kafka之保证消息不丢失/" data-title="研磨消息中间件Kafka之保证消息不丢失" data-url="http://wuwenliang.net/2019/06/04/研磨消息中间件Kafka之保证消息不丢失/"></div>
 </section>
 
 
@@ -194,7 +208,7 @@ I">
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#keywords-研磨Kafka"><span class="toc-number">1.</span> <span class="toc-text">keywords: 研磨Kafka</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ISR"><span class="toc-number">1.1.</span> <span class="toc-text">ISR</span></a></li></ol></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#ISR"><span class="toc-number">1.</span> <span class="toc-text">ISR</span></a></li></ol>
  
   </div>
 
@@ -356,7 +370,7 @@ I">
 		  
 		
 		  
-			<li><a href="/categories/研磨Kafka/" title="研磨Kafka">研磨Kafka<sup>5</sup></a></li>
+			<li><a href="/categories/研磨Kafka/" title="研磨Kafka">研磨Kafka<sup>6</sup></a></li>
 		  
 		
 		  
@@ -379,7 +393,7 @@ I">
   <div class="tagcloudlist">
     <p class="asidetitle">标签云</p>
     <div class="tagcloudlist clearfix">
-       <a href="/tags/Dubbo/" style="font-size: 13.33px;">Dubbo</a> <a href="/tags/ELK-Stack/" style="font-size: 15.56px;">ELK-Stack</a> <a href="/tags/HTTPS/" style="font-size: 10px;">HTTPS</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JDK-concurrent/" style="font-size: 12.22px;">JDK-concurrent</a> <a href="/tags/JDK源码解析/" style="font-size: 13.33px;">JDK源码解析</a> <a href="/tags/Java/" style="font-size: 18.89px;">Java</a> <a href="/tags/KindEditor/" style="font-size: 10px;">KindEditor</a> <a href="/tags/Linux/" style="font-size: 11.11px;">Linux</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/SSO-单点登录/" style="font-size: 10px;">SSO,单点登录</a> <a href="/tags/Sharding-JDBC/" style="font-size: 13.33px;">Sharding-JDBC</a> <a href="/tags/SpringCloud/" style="font-size: 10px;">SpringCloud</a> <a href="/tags/Tomcat/" style="font-size: 11.11px;">Tomcat</a> <a href="/tags/auth/" style="font-size: 11.11px;">auth</a> <a href="/tags/docker/" style="font-size: 12.22px;">docker</a> <a href="/tags/hexo/" style="font-size: 11.11px;">hexo</a> <a href="/tags/kubernates/" style="font-size: 10px;">kubernates</a> <a href="/tags/maven/" style="font-size: 12.22px;">maven</a> <a href="/tags/mybatis/" style="font-size: 11.11px;">mybatis</a> <a href="/tags/mysql/" style="font-size: 14.44px;">mysql</a> <a href="/tags/nginx/" style="font-size: 11.11px;">nginx</a> <a href="/tags/spring-boot/" style="font-size: 20px;">spring-boot</a> <a href="/tags/springboot/" style="font-size: 10px;">springboot</a> <a href="/tags/web/" style="font-size: 13.33px;">web</a> <a href="/tags/与你同行/" style="font-size: 10px;">与你同行</a> <a href="/tags/专题-分布式/" style="font-size: 17.78px;">专题-分布式</a> <a href="/tags/代理模式-工作总结-入职感受/" style="font-size: 10px;">代理模式,工作总结,入职感受</a> <a href="/tags/分布式-Dubbo/" style="font-size: 13.33px;">分布式 Dubbo</a> <a href="/tags/单例模式-懒加载/" style="font-size: 10px;">单例模式, 懒加载</a> <a href="/tags/年度总结/" style="font-size: 12.22px;">年度总结</a> <a href="/tags/我们的爱情/" style="font-size: 10px;">我们的爱情</a> <a href="/tags/数据库/" style="font-size: 10px;">数据库</a> <a href="/tags/汇总盘点推荐/" style="font-size: 10px;">汇总盘点推荐</a> <a href="/tags/爬虫-WebMagic/" style="font-size: 10px;">爬虫,WebMagic</a> <a href="/tags/电话面试/" style="font-size: 10px;">电话面试</a> <a href="/tags/研磨Kafka/" style="font-size: 14.44px;">研磨Kafka</a> <a href="/tags/秒杀/" style="font-size: 10px;">秒杀</a> <a href="/tags/自己写分布式组件系列/" style="font-size: 16.67px;">自己写分布式组件系列</a> <a href="/tags/跟我学RocketMQ/" style="font-size: 15.56px;">跟我学RocketMQ</a> <a href="/tags/随笔/" style="font-size: 14.44px;">随笔</a>
+       <a href="/tags/Dubbo/" style="font-size: 13px;">Dubbo</a> <a href="/tags/ELK-Stack/" style="font-size: 16px;">ELK-Stack</a> <a href="/tags/HTTPS/" style="font-size: 10px;">HTTPS</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a> <a href="/tags/JDK-concurrent/" style="font-size: 12px;">JDK-concurrent</a> <a href="/tags/JDK源码解析/" style="font-size: 13px;">JDK源码解析</a> <a href="/tags/Java/" style="font-size: 19px;">Java</a> <a href="/tags/KindEditor/" style="font-size: 10px;">KindEditor</a> <a href="/tags/Linux/" style="font-size: 11px;">Linux</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/SSO-单点登录/" style="font-size: 10px;">SSO,单点登录</a> <a href="/tags/Sharding-JDBC/" style="font-size: 13px;">Sharding-JDBC</a> <a href="/tags/SpringCloud/" style="font-size: 10px;">SpringCloud</a> <a href="/tags/Tomcat/" style="font-size: 11px;">Tomcat</a> <a href="/tags/auth/" style="font-size: 11px;">auth</a> <a href="/tags/docker/" style="font-size: 12px;">docker</a> <a href="/tags/hexo/" style="font-size: 11px;">hexo</a> <a href="/tags/kubernates/" style="font-size: 10px;">kubernates</a> <a href="/tags/maven/" style="font-size: 12px;">maven</a> <a href="/tags/mybatis/" style="font-size: 11px;">mybatis</a> <a href="/tags/mysql/" style="font-size: 14px;">mysql</a> <a href="/tags/nginx/" style="font-size: 11px;">nginx</a> <a href="/tags/spring-boot/" style="font-size: 20px;">spring-boot</a> <a href="/tags/springboot/" style="font-size: 10px;">springboot</a> <a href="/tags/web/" style="font-size: 13px;">web</a> <a href="/tags/与你同行/" style="font-size: 10px;">与你同行</a> <a href="/tags/专题-分布式/" style="font-size: 18px;">专题-分布式</a> <a href="/tags/代理模式-工作总结-入职感受/" style="font-size: 10px;">代理模式,工作总结,入职感受</a> <a href="/tags/分布式-Dubbo/" style="font-size: 13px;">分布式 Dubbo</a> <a href="/tags/单例模式-懒加载/" style="font-size: 10px;">单例模式, 懒加载</a> <a href="/tags/年度总结/" style="font-size: 12px;">年度总结</a> <a href="/tags/我们的爱情/" style="font-size: 10px;">我们的爱情</a> <a href="/tags/数据库/" style="font-size: 10px;">数据库</a> <a href="/tags/汇总盘点推荐/" style="font-size: 10px;">汇总盘点推荐</a> <a href="/tags/爬虫-WebMagic/" style="font-size: 10px;">爬虫,WebMagic</a> <a href="/tags/电话面试/" style="font-size: 10px;">电话面试</a> <a href="/tags/研磨Kafka/" style="font-size: 15px;">研磨Kafka</a> <a href="/tags/秒杀/" style="font-size: 10px;">秒杀</a> <a href="/tags/自己写分布式组件系列/" style="font-size: 17px;">自己写分布式组件系列</a> <a href="/tags/跟我学RocketMQ/" style="font-size: 16px;">跟我学RocketMQ</a> <a href="/tags/随笔/" style="font-size: 14px;">随笔</a>
     </div>
   </div>
 
@@ -424,11 +438,11 @@ I">
 			
 		
 			
-				<li><a href="/tags/随笔/" title="随笔">随笔<sup>5</sup></a></li>
+				<li><a href="/tags/研磨Kafka/" title="研磨Kafka">研磨Kafka<sup>6</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/研磨Kafka/" title="研磨Kafka">研磨Kafka<sup>5</sup></a></li>
+				<li><a href="/tags/随笔/" title="随笔">随笔<sup>5</sup></a></li>
 			
 		
 			
