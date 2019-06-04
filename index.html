@@ -205,6 +205,78 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" title="" itemprop="url"></a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
+		
+  <p class="article-time">
+    <time datetime="2019-05-23T08:28:03.939Z" itemprop="datePublished"> 发表于 2019-05-23</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <hr>
+<p>title: 研磨消息中间件Kafka之保证消息不丢失<br>date: 2019-06-04 14:07:03<br>categories: 研磨Kafka<br>tags: 研磨Kafka</p>
+<h2 id="keywords-研磨Kafka"><a href="#keywords-研磨Kafka" class="headerlink" title="keywords: 研磨Kafka"></a>keywords: 研磨Kafka</h2><blockquote>
+<p>本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。</p>
+</blockquote>
+<p>Kafka通过ISR机制保证了消息发送的可靠性。</p>
+<p>首先介绍下什么是ISR。</p>
+<h3 id="ISR"><a href="#ISR" class="headerlink" title="ISR"></a>ISR</h3><blockquote>
+<p>ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。</p>
+</blockquote>
+<p>我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。</p>
+<p>在Kafka中，分区下维护了一个replica集合，集合中所有副本保存的日志都和leader 副本保持着同步状态。</p>
+<p>只有该集合中的replica才能被选举为leader，当该集合中所有的副本都收到了同一条消息，Kafka才会将该消息状态设置为“已提交”状态，对客户端而言就是消息发送成功了。</p>
+<p>Kafka保证，在分区下的replica集合中，只要存在至少一个replica，则状态为 <strong>“已提交”</strong> 的消息就不会丢失。</p>
+<p>这里我们要记住两个要点：</p>
+<ol>
+<li>ISR 中存在至少一个可用的replica</li>
+<li>消息状态为– <strong>已提交</strong></li>
+</ol>
+        
+        
+        <p class="article-more-link">
+          
+            <a href="/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/#more">Read More</a>
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/" title="研磨消息中间件Kafka之主题、分区及消息位移" itemprop="url">研磨消息中间件Kafka之主题、分区及消息位移</a>
   </h1>
   <p class="article-author">By
@@ -867,75 +939,6 @@
 	
 	  	<span></span>
 		<a href="/2019/04/16/自己写分布式调度组件shield-job之使用单机模式/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/04/16/自己写分布式调度组件shield-job之使用单机模式/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/" title="自己写分布式调度组件shield-job之使用shield-job" itemprop="url">自己写分布式调度组件shield-job之使用shield-job</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
-		
-  <p class="article-time">
-    <time datetime="2019-04-15T02:11:46.000Z" itemprop="datePublished"> 发表于 2019-04-15</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>自己写分布式调度组件继续更新，目前已经完成了一个里程碑版本。</p>
-<p>千呼万唤始出来，却不是当初想的模样。之前立的flag太大，最终决定暂时放弃开发分布式版本，把目标改为基于消息队列RocketMQ的任务分发框架，具体的调度逻辑由调用方自行开发。</p>
-<h2 id="客户端接口"><a href="#客户端接口" class="headerlink" title="客户端接口"></a>客户端接口</h2><blockquote>
-<p>首先介绍客户端需要关注的接口以及实体</p>
-</blockquote>
-<h3 id="客户端实体–任务实体BaseJob"><a href="#客户端实体–任务实体BaseJob" class="headerlink" title="客户端实体–任务实体BaseJob"></a>客户端实体–任务实体BaseJob</h3><p>任务实体BaseJob为shield-job的调度核心实体，调用方的业务实体需要继承该作业抽象类，实现其中的<strong>encode()</strong> 以及 <strong>decode(String msg)</strong> 抽象方法。</p>
-        
-        
-        <p class="article-more-link">
-          
-            <a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/#more">Read More</a>
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/自己写分布式组件系列/">自己写分布式组件系列</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/自己写分布式组件系列/">自己写分布式组件系列</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2019/04/15/自己写分布式调度组件shield-job之使用shield-job/#comments" class="ds-thread-count comments-count-link" data-thread-key="2019/04/15/自己写分布式调度组件shield-job之使用shield-job/" data-count-type="comments">&nbsp;</a>
 	
 </div>
 

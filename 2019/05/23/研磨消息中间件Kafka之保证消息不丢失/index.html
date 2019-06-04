@@ -4,35 +4,41 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>[转]秒杀架构优化，产品折衷 | 朝·闻·道</title>
+    <title>朝·闻·道</title>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
     
     <meta name="author" content="SnoWalker">
     
 
-    <meta name="keywords" content="秒杀">
-    <meta name="description" content="本文转载自：58沈剑  架构师之路
-今天有朋友问我，说我的文章里，总是提“脱离业务的架构设计是耍流氓”。
-每次都是架构根据业务折衷，有没有业务和产品由于技术难度太大来做折衷的？
-当然有，当一个业务技术难度非常大的时候，可以通过业务和产品的优化，来简化系统架构。
-以“12306车票秒杀”为例，秒杀业务架构难度大，业务和产品可以这么折衷：">
+    
+    <meta name="description" content="title: 研磨消息中间件Kafka之保证消息不丢失date: 2019-06-04 14:07:03categories: 研磨Kafkatags: 研磨Kafka
+keywords: 研磨Kafka
+本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
+
+Kafka通过ISR机制保证了消息发送的可靠性。
+首先介绍下什么是ISR。
+I">
 <meta property="og:type" content="article">
-<meta property="og:title" content="[转]秒杀架构优化，产品折衷">
-<meta property="og:url" content="http://wuwenliang.net/2018/06/10/转-秒杀架构优化，产品折衷/index.html">
+<meta property="og:title" content="朝·闻·道">
+<meta property="og:url" content="http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/index.html">
 <meta property="og:site_name" content="朝·闻·道">
-<meta property="og:description" content="本文转载自：58沈剑  架构师之路
-今天有朋友问我，说我的文章里，总是提“脱离业务的架构设计是耍流氓”。
-每次都是架构根据业务折衷，有没有业务和产品由于技术难度太大来做折衷的？
-当然有，当一个业务技术难度非常大的时候，可以通过业务和产品的优化，来简化系统架构。
-以“12306车票秒杀”为例，秒杀业务架构难度大，业务和产品可以这么折衷：">
-<meta property="og:updated_time" content="2018-06-10T10:40:20.976Z">
+<meta property="og:description" content="title: 研磨消息中间件Kafka之保证消息不丢失date: 2019-06-04 14:07:03categories: 研磨Kafkatags: 研磨Kafka
+keywords: 研磨Kafka
+本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
+
+Kafka通过ISR机制保证了消息发送的可靠性。
+首先介绍下什么是ISR。
+I">
+<meta property="og:updated_time" content="2019-06-04T06:06:31.790Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="[转]秒杀架构优化，产品折衷">
-<meta name="twitter:description" content="本文转载自：58沈剑  架构师之路
-今天有朋友问我，说我的文章里，总是提“脱离业务的架构设计是耍流氓”。
-每次都是架构根据业务折衷，有没有业务和产品由于技术难度太大来做折衷的？
-当然有，当一个业务技术难度非常大的时候，可以通过业务和产品的优化，来简化系统架构。
-以“12306车票秒杀”为例，秒杀业务架构难度大，业务和产品可以这么折衷：">
+<meta name="twitter:title" content="朝·闻·道">
+<meta name="twitter:description" content="title: 研磨消息中间件Kafka之保证消息不丢失date: 2019-06-04 14:07:03categories: 研磨Kafkatags: 研磨Kafka
+keywords: 研磨Kafka
+本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。
+
+Kafka通过ISR机制保证了消息发送的可靠性。
+首先介绍下什么是ISR。
+I">
 
     
     
@@ -90,14 +96,14 @@
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2018/06/10/转-秒杀架构优化，产品折衷/" title="[转]秒杀架构优化，产品折衷" itemprop="url">[转]秒杀架构优化，产品折衷</a>
+      <a href="/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" title="" itemprop="url"></a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="SnoWalker" target="_blank" itemprop="author">SnoWalker</a>
 		
   <p class="article-time">
-    <time datetime="2018-06-10T10:38:24.000Z" itemprop="datePublished"> 发表于 2018-06-10</time>
+    <time datetime="2019-05-23T08:28:03.939Z" itemprop="datePublished"> 发表于 2019-05-23</time>
     
   </p>
 </header>
@@ -106,45 +112,43 @@
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
 		
-			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#case-1"><span class="toc-number">1.</span> <span class="toc-text">case 1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#case-2"><span class="toc-number">2.</span> <span class="toc-text">case 2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#case-3"><span class="toc-number">3.</span> <span class="toc-text">case 3</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#case-4"><span class="toc-number">4.</span> <span class="toc-text">case 4</span></a></li></ol>
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#keywords-研磨Kafka"><span class="toc-number">1.</span> <span class="toc-text">keywords: 研磨Kafka</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ISR"><span class="toc-number">1.1.</span> <span class="toc-text">ISR</span></a></li></ol></li></ol>
 		
 		</div>
 		
-		<p>本文转载自：<a href="https://mp.weixin.qq.com/s/8R9HYbzk_gzZlxzRTYcOeA" target="_blank" rel="external">58沈剑  架构师之路</a></p>
-<p>今天有朋友问我，说我的文章里，总是提“脱离业务的架构设计是耍流氓”。</p>
-<p>每次都是架构根据业务折衷，有没有业务和产品由于技术难度太大来做折衷的？</p>
-<p>当然有，当一个业务技术难度非常大的时候，可以通过业务和产品的优化，来简化系统架构。</p>
-<p>以“12306车票秒杀”为例，秒杀业务架构难度大，业务和产品可以这么折衷：<br><a id="more"></a></p>
-<h2 id="case-1"><a href="#case-1" class="headerlink" title="case 1"></a>case 1</h2><p>一般来说，下单和支付放在同一个流程里，能够提高转化率。</p>
-<p>对于秒杀场景，产品上，下单流程和支付流程异步，放在两个环节里，能够降低数据库写压力。</p>
-<p>12306，下单成功后，系统占住库存，45分钟之内支付即可。</p>
-<h2 id="case-2"><a href="#case-2" class="headerlink" title="case 2"></a>case 2</h2><p>一般来说，所有用户规则相同，体验会更好。</p>
-<p>对于秒杀场景，产品上，不同地域分时售票，虽然不是所有用户规则相同，但能够极大降低系统压力。</p>
-<p>北京9:00开始售票，上海9:30开始售票，广州XX开始售票，能够分担系统压力。</p>
-<h2 id="case-3"><a href="#case-3" class="headerlink" title="case 3"></a>case 3</h2><p>秒杀场景，由于短时间内并发较大，系统返回较慢，用户心情十分焦急，可能会频繁点击按钮，对系统造成压力。</p>
-<p>产品上可以优化为，一旦点击，不管系统是否返回，按钮立刻置灰，不给用户机会频繁点击。</p>
-<h2 id="case-4"><a href="#case-4" class="headerlink" title="case 4"></a>case 4</h2><p>一般来说，显示具体的库存数量，能够加强用户体验。</p>
-<p>对于秒杀场景，产品上，只显示有/无车票，而不是显示具体票数目，能够降低缓存淘汰率。</p>
-<p>显示库存会淘汰N次，显示有无只会淘汰1次。更多的，用户关注是否有票，而不是票有几张。</p>
-<p>…</p>
-<p>无论如何，产品技术运营一起，目标是一致的，把事情做好，不存在谁是甲方，谁是乙方的关系。</p>
-<p>脱离业务的架构设计是耍流氓。<br>架构难度大，产品也应该折衷。<br>画外音：秒杀业务的架构优化讲过了，这次说产品上的优化。</p>
-<p>兄弟，你的产品折衷了吗？或者，奇葩了吗？<br>欢迎分享你的故事。</p>
+		<hr>
+<p>title: 研磨消息中间件Kafka之保证消息不丢失<br>date: 2019-06-04 14:07:03<br>categories: 研磨Kafka<br>tags: 研磨Kafka</p>
+<h2 id="keywords-研磨Kafka"><a href="#keywords-研磨Kafka" class="headerlink" title="keywords: 研磨Kafka"></a>keywords: 研磨Kafka</h2><blockquote>
+<p>本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。</p>
+</blockquote>
+<p>Kafka通过ISR机制保证了消息发送的可靠性。</p>
+<p>首先介绍下什么是ISR。</p>
+<h3 id="ISR"><a href="#ISR" class="headerlink" title="ISR"></a>ISR</h3><blockquote>
+<p>ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。</p>
+</blockquote>
+<p>我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。</p>
+<p>在Kafka中，分区下维护了一个replica集合，集合中所有副本保存的日志都和leader 副本保持着同步状态。</p>
+<p>只有该集合中的replica才能被选举为leader，当该集合中所有的副本都收到了同一条消息，Kafka才会将该消息状态设置为“已提交”状态，对客户端而言就是消息发送成功了。</p>
+<p>Kafka保证，在分区下的replica集合中，只要存在至少一个replica，则状态为 <strong>“已提交”</strong> 的消息就不会丢失。</p>
+<p>这里我们要记住两个要点：</p>
+<ol>
+<li>ISR 中存在至少一个可用的replica</li>
+<li>消息状态为– <strong>已提交</strong></li>
+</ol>
+<a id="more"></a>
+<p>我们常常会听到一种论调，“Kafka会丢消息”。</p>
+<p>这种言论其实是没有理解Kafka对消息可靠性保证的范围，Kafka并非对任意消息都保证可靠提交，它只保证在ISR存活的条件下，对“已提交”消息是不会丢失的，而对于未提交成功的消息，Kafka不做可靠性保证。</p>
+<p>通常情况下，分区内所有的replica（也包括leader replica），都与leader replica保持着同步，如果出现一部分replica开始落后于leader replica的进度，当落后进度达到一定阈值，则Kafka会将<br>这些replica “踢出” ISR。反之，当这些落后的replica重新追上了leader的进度，则Kafka会将他们重新加入到ISR中。这个过程完全是自动的，不需要人工干预。既保证了消息交付可靠性语义，同时还<br>减少了用户的操作成本。</p>
+<p>那么Kafka具体是如何配置ISR从而达到消息可靠存储的目的呢？</p>
+<p>我们主要关注新版的Kafka，在0.9.0.0版本之后，Kafka不再通过replica.lag.max.messages参数，而是改成了唯一参数—<strong>replica.lag.time.max.ms</strong> 来进行检测，它的含义是：follower副本落后<br>leader副本的时间间隔，参数的默认值为10s。</p>
+<p>对于“请求速度追不上”的情况，Kafka采用了新的检测机制–如果一个follower副本落后leader副本的时间超过了该参数，则认为该follower副本是不同步的，这样做的目的是：避免由于短时间内出现瞬时峰值，而导致follower反应进出ISR，从而保证了集群的稳定性和吞吐量。</p>
+<p>参考资料：</p>
+<p>《Apache Kafka实战》</p>
   
 	</div>
 		<footer class="article-footer clearfix">
 <div class="article-catetags">
 
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/架构/">架构</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/秒杀/">秒杀</a>
-  </div>
 
 </div>
 
@@ -152,7 +156,7 @@
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://wuwenliang.net/2018/06/10/转-秒杀架构优化，产品折衷/" data-title="[转]秒杀架构优化，产品折衷 | 朝·闻·道" data-tsina="null" class="share clearfix">
+	  <div data-url="http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" data-title="朝·闻·道" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -165,19 +169,11 @@
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2018/06/10/转-微服务下SpringBootMaven工程依赖关系管理/" title="[转]微服务下Spring-Boot-Maven工程依赖关系管理">
-  <strong>上一篇：</strong><br/>
-  <span>
-  [转]微服务下Spring-Boot-Maven工程依赖关系管理</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2018/06/08/执行java-jar报错No-main-manifest-attribute解决之道/"  title="执行java-jar报错No main manifest attribute解决之道">
+<a href="/2019/05/22/研磨消息中间件Kafka之主题、分区及消息位移/"  title="研磨消息中间件Kafka之主题、分区及消息位移">
  <strong>下一篇：</strong><br/> 
- <span>执行java-jar报错No main manifest attribute解决之道
+ <span>研磨消息中间件Kafka之主题、分区及消息位移
 </span>
 </a>
 </div>
@@ -186,7 +182,7 @@
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2018/06/10/转-秒杀架构优化，产品折衷/" data-title="[转]秒杀架构优化，产品折衷" data-url="http://wuwenliang.net/2018/06/10/转-秒杀架构优化，产品折衷/"></div>
+	<div class="ds-thread" data-thread-key="2019/05/23/研磨消息中间件Kafka之保证消息不丢失/" data-title="" data-url="http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/"></div>
 </section>
 
 
@@ -198,7 +194,7 @@
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
  
- <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#case-1"><span class="toc-number">1.</span> <span class="toc-text">case 1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#case-2"><span class="toc-number">2.</span> <span class="toc-text">case 2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#case-3"><span class="toc-number">3.</span> <span class="toc-text">case 3</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#case-4"><span class="toc-number">4.</span> <span class="toc-text">case 4</span></a></li></ol>
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#keywords-研磨Kafka"><span class="toc-number">1.</span> <span class="toc-text">keywords: 研磨Kafka</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ISR"><span class="toc-number">1.1.</span> <span class="toc-text">ISR</span></a></li></ol></li></ol>
  
   </div>
 

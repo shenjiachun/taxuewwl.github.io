@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wuwenliang.net/"/>
-  <updated>2019-05-22T03:26:16.001Z</updated>
+  <updated>2019-06-04T06:06:31.790Z</updated>
   <id>http://wuwenliang.net/</id>
   
   <author>
@@ -14,6 +14,70 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title></title>
+    <link href="http://wuwenliang.net/2019/05/23/%E7%A0%94%E7%A3%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6Kafka%E4%B9%8B%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1/"/>
+    <id>http://wuwenliang.net/2019/05/23/研磨消息中间件Kafka之保证消息不丢失/</id>
+    <published>2019-05-23T08:28:03.939Z</published>
+    <updated>2019-06-04T06:06:31.790Z</updated>
+    
+    <content type="html"><![CDATA[<hr>
+<p>title: 研磨消息中间件Kafka之保证消息不丢失<br>date: 2019-06-04 14:07:03<br>categories: 研磨Kafka<br>tags: 研磨Kafka</p>
+<h2 id="keywords-研磨Kafka"><a href="#keywords-研磨Kafka" class="headerlink" title="keywords: 研磨Kafka"></a>keywords: 研磨Kafka</h2><blockquote>
+<p>本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。</p>
+</blockquote>
+<p>Kafka通过ISR机制保证了消息发送的可靠性。</p>
+<p>首先介绍下什么是ISR。</p>
+<h3 id="ISR"><a href="#ISR" class="headerlink" title="ISR"></a>ISR</h3><blockquote>
+<p>ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。</p>
+</blockquote>
+<p>我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。</p>
+<p>在Kafka中，分区下维护了一个replica集合，集合中所有副本保存的日志都和leader 副本保持着同步状态。</p>
+<p>只有该集合中的replica才能被选举为leader，当该集合中所有的副本都收到了同一条消息，Kafka才会将该消息状态设置为“已提交”状态，对客户端而言就是消息发送成功了。</p>
+<p>Kafka保证，在分区下的replica集合中，只要存在至少一个replica，则状态为 <strong>“已提交”</strong> 的消息就不会丢失。</p>
+<p>这里我们要记住两个要点：</p>
+<ol>
+<li>ISR 中存在至少一个可用的replica</li>
+<li>消息状态为– <strong>已提交</strong></li>
+</ol>
+<a id="more"></a>
+<p>我们常常会听到一种论调，“Kafka会丢消息”。</p>
+<p>这种言论其实是没有理解Kafka对消息可靠性保证的范围，Kafka并非对任意消息都保证可靠提交，它只保证在ISR存活的条件下，对“已提交”消息是不会丢失的，而对于未提交成功的消息，Kafka不做可靠性保证。</p>
+<p>通常情况下，分区内所有的replica（也包括leader replica），都与leader replica保持着同步，如果出现一部分replica开始落后于leader replica的进度，当落后进度达到一定阈值，则Kafka会将<br>这些replica “踢出” ISR。反之，当这些落后的replica重新追上了leader的进度，则Kafka会将他们重新加入到ISR中。这个过程完全是自动的，不需要人工干预。既保证了消息交付可靠性语义，同时还<br>减少了用户的操作成本。</p>
+<p>那么Kafka具体是如何配置ISR从而达到消息可靠存储的目的呢？</p>
+<p>我们主要关注新版的Kafka，在0.9.0.0版本之后，Kafka不再通过replica.lag.max.messages参数，而是改成了唯一参数—<strong>replica.lag.time.max.ms</strong> 来进行检测，它的含义是：follower副本落后<br>leader副本的时间间隔，参数的默认值为10s。</p>
+<p>对于“请求速度追不上”的情况，Kafka采用了新的检测机制–如果一个follower副本落后leader副本的时间超过了该参数，则认为该follower副本是不同步的，这样做的目的是：避免由于短时间内出现瞬时峰值，而导致follower反应进出ISR，从而保证了集群的稳定性和吞吐量。</p>
+<p>参考资料：</p>
+<p>《Apache Kafka实战》</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;hr&gt;
+&lt;p&gt;title: 研磨消息中间件Kafka之保证消息不丢失&lt;br&gt;date: 2019-06-04 14:07:03&lt;br&gt;categories: 研磨Kafka&lt;br&gt;tags: 研磨Kafka&lt;/p&gt;
+&lt;h2 id=&quot;keywords-研磨Kafka&quot;&gt;&lt;a href=&quot;#keywords-研磨Kafka&quot; class=&quot;headerlink&quot; title=&quot;keywords: 研磨Kafka&quot;&gt;&lt;/a&gt;keywords: 研磨Kafka&lt;/h2&gt;&lt;blockquote&gt;
+&lt;p&gt;本文是“研磨Kafka”系列较为重要的一篇，我将在本文中重点讲解Kafka是通过何种手段达到消息不丢失的目的。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Kafka通过ISR机制保证了消息发送的可靠性。&lt;/p&gt;
+&lt;p&gt;首先介绍下什么是ISR。&lt;/p&gt;
+&lt;h3 id=&quot;ISR&quot;&gt;&lt;a href=&quot;#ISR&quot; class=&quot;headerlink&quot; title=&quot;ISR&quot;&gt;&lt;/a&gt;ISR&lt;/h3&gt;&lt;blockquote&gt;
+&lt;p&gt;ISR，即：in-sync replica，中文含义为：与leader 副本保持同步的副本集合。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;我们在之前的文章中已经介绍过Kafka的副本机制，如：单个分区可配置多个副本。&lt;/p&gt;
+&lt;p&gt;在Kafka中，分区下维护了一个replica集合，集合中所有副本保存的日志都和leader 副本保持着同步状态。&lt;/p&gt;
+&lt;p&gt;只有该集合中的replica才能被选举为leader，当该集合中所有的副本都收到了同一条消息，Kafka才会将该消息状态设置为“已提交”状态，对客户端而言就是消息发送成功了。&lt;/p&gt;
+&lt;p&gt;Kafka保证，在分区下的replica集合中，只要存在至少一个replica，则状态为 &lt;strong&gt;“已提交”&lt;/strong&gt; 的消息就不会丢失。&lt;/p&gt;
+&lt;p&gt;这里我们要记住两个要点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;ISR 中存在至少一个可用的replica&lt;/li&gt;
+&lt;li&gt;消息状态为– &lt;strong&gt;已提交&lt;/strong&gt;&lt;/li&gt;
+&lt;/ol&gt;
+    
+    </summary>
+    
+    
+  </entry>
   
   <entry>
     <title>研磨消息中间件Kafka之主题、分区及消息位移</title>
@@ -4439,129 +4503,6 @@ public class UploadFileConfig extends WebMvcConfigurerAdapter {
     
     
       <category term="汇总盘点推荐" scheme="http://wuwenliang.net/tags/%E6%B1%87%E6%80%BB%E7%9B%98%E7%82%B9%E6%8E%A8%E8%8D%90/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>springboot2.x整合nacos配置服务实现配置获取及刷新</title>
-    <link href="http://wuwenliang.net/2019/02/22/springboot2-x%E6%95%B4%E5%90%88nacos%E9%85%8D%E7%BD%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E7%8E%B0%E9%85%8D%E7%BD%AE%E8%8E%B7%E5%8F%96%E5%8F%8A%E5%88%B7%E6%96%B0/"/>
-    <id>http://wuwenliang.net/2019/02/22/springboot2-x整合nacos配置服务实现配置获取及刷新/</id>
-    <published>2019-02-22T05:55:22.000Z</published>
-    <updated>2019-02-26T13:01:45.775Z</updated>
-    
-    <content type="html"><![CDATA[<p><a href="http://wuwenliang.net/2019/02/22/springboot2-x%E6%95%B4%E5%90%88nacos%E9%85%8D%E7%BD%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E7%8E%B0%E9%85%8D%E7%BD%AE%E8%8E%B7%E5%8F%96%E5%8F%8A%E5%88%B7%E6%96%B0/">原文链接</a></p>
-<p>本文我将带领大家在springboot2.x的开发框架中整合alibaba-nacos，实现配置获取及刷新等功能。</p>
-<p>引用官方介绍：</p>
-<blockquote>
-<p>Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您实现动态服务发现、服务配置管理、服务及流量管理。<br>Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。<br>Nacos 是构建以“服务”为中心的现代应用架构(例如微服务范式、云原生范式)的服务基础设施。</p>
-</blockquote>
-<p>可以看到，Nacos主要面向分布式配置级服务发现等领域，由于之前使用过阿里云的ACM配置服务体验良好，而Nacos便是ACM的开源版本，因此我们选择了Nacos作为<br>业务框架的分布式配置中心。</p>
-<p>接下来开始进行Nacos的整合。<br><a id="more"></a><br>开始之前，要保证已经搭建好Nacos平台。</p>
-<p>如何安装Nacos的Server请移步 <a href="https://nacos.io/zh-cn/docs/quick-start.html" target="_blank" rel="external">安装Nacos</a></p>
-<h2 id="引入nacos-config-spring-boot-starter"><a href="#引入nacos-config-spring-boot-starter" class="headerlink" title="引入nacos-config-spring-boot-starter"></a>引入nacos-config-spring-boot-starter</h2><p>在pom.xml中添加如下依赖</p>
-<pre><code>&lt;!--nacos-discovery-spring-boot-starter--&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba.boot&lt;/groupId&gt;
-    &lt;artifactId&gt;nacos-config-spring-boot-starter&lt;/artifactId&gt;
-    &lt;version&gt;0.2.1&lt;/version&gt;
-&lt;/dependency&gt;
-</code></pre><p>由于我们的项目的基础是springboot2.x，使用版本0.2.1即可。对于springboot1.x版本需要引入下面的依赖</p>
-<pre><code>&lt;!--nacos-discovery-spring-boot-starter--&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.alibaba.boot&lt;/groupId&gt;
-    &lt;artifactId&gt;nacos-config-spring-boot-starter&lt;/artifactId&gt;
-    &lt;version&gt;0.1.1&lt;/version&gt;
-&lt;/dependency&gt;  
-</code></pre><h2 id="application-properties中引入Nacos的config-server地址"><a href="#application-properties中引入Nacos的config-server地址" class="headerlink" title="application.properties中引入Nacos的config-server地址"></a>application.properties中引入Nacos的config-server地址</h2><p>在application.properties中添加如下配置</p>
-<pre><code>##########################################################################
-#
-#     Nacos配置
-#
-##########################################################################
-nacos.config.server-addr=172.30.xx.xx:8848,172.30.xx.xx:8848,172.30.xx.xx:8848
-</code></pre><p>我这里使用的nacos服务端是集群模式，地址做了脱敏处理。</p>
-<h2 id="编写配置读取类NacosConfigAnnoatationService"><a href="#编写配置读取类NacosConfigAnnoatationService" class="headerlink" title="编写配置读取类NacosConfigAnnoatationService"></a>编写配置读取类NacosConfigAnnoatationService</h2><p>Nacos的springboot客户端，提供了简洁易用的API，支持注解方式对配置进行读取即刷新。</p>
-<pre><code>@Service
-@NacosPropertySource(dataId = &quot;com.gaoyang.marketing.rocketmq.order&quot;, groupId=&quot;DEFAULT_GROUP&quot;, autoRefreshed = true)
-public class NacosConfigAnnoatationService implements CommandLineRunner {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(NacosConfigAnnoatationService.class);
-
-    /**
-     * ${name:hello}:key=name,默认值=hello
-     */
-    @NacosValue(value = &quot;${name:hello}&quot;, autoRefreshed = true)
-    String name;
-
-    @NacosValue(value = &quot;${interest:world}&quot;, autoRefreshed = true)
-    String interest;
-
-    @Override
-    public void run(String... args) throws Exception {
-        while (true) {
-            Thread.sleep(4000);
-            LOGGER.info(&quot;[NacosConfigAnnoatationService]注解方式获取到的配置项目,name={},interest={}&quot;, name, interest);
-        }
-    }
-}
-</code></pre><p>接下来对代码进行详细的解释。</p>
-<p>我们编写了一个测试类，标记为spring的一个Service, 同时标注</p>
-<pre><code>@NacosPropertySource(dataId = &quot;com.gaoyang.marketing.rocketmq.order&quot;, groupId=&quot;DEFAULT_GROUP&quot;, autoRefreshed = true)
-</code></pre><p>使用 <strong>@NacosPropertySource</strong> 加载 dataId 为 com.gaoyang.marketing.rocketmq.order ，groupId如果不配置，则默认为<br><strong>DEFAULT_GROUP</strong> 的配置源，并开启自动更新。</p>
-<p>通过spring的 <strong>@Value</strong> 注入配置，这里的两个配置是我在后台建立好的，如何建立配置在下一章节进行详细的展开。</p>
-<p>以name配置项为例，添加注解</p>
-<pre><code>@NacosValue(value = &quot;${name:hello}&quot;, autoRefreshed = true)
-</code></pre><p>我们通过@NacosValue 注解设置属性值，name:hello 表示key为name的配置项的默认值为<br>hello，autoRefreshed=true表示开启自动刷新。</p>
-<p>我们通过死循环来测试自动刷新是否生效。</p>
-<h2 id="控制台配置配置项"><a href="#控制台配置配置项" class="headerlink" title="控制台配置配置项"></a>控制台配置配置项</h2><p>首先进入Nacos配置页面，输入账号密码，进行登录，如图</p>
-<p><img src="/2019/02/22/springboot2-x整合nacos配置服务实现配置获取及刷新/./login.png" alt="登录Naocs控制台"></p>
-<p>登录成功后在左侧菜单一次展开</p>
-<pre><code>配置管理
-    |-配置列表
-</code></pre><p><img src="/2019/02/22/springboot2-x整合nacos配置服务实现配置获取及刷新/./add2.png" alt="配置列表"></p>
-<p>点击 “+” 增加配置项。必填项为：dataId，groupId，配置内容。如图所示</p>
-<p><img src="/2019/02/22/springboot2-x整合nacos配置服务实现配置获取及刷新/./add1.png" alt="新增配置"></p>
-<p>填写完成后提交即可。</p>
-<h2 id="测试配置更新"><a href="#测试配置更新" class="headerlink" title="测试配置更新"></a>测试配置更新</h2><p>我们首先运行样例，将项目启动。springboot中，对于标注了 <strong>@CommandLineRunner</strong> 的类，会在项目启动完后自动加载运行run()方法。</p>
-<p>控制台打印如下内容，四秒打印一次，我截取一部分如下</p>
-<pre><code>2019-02-22 11:54:51.209 [main] INFO  c.g.m.d.p.config.NacosConfigAnnoatationService [37] - 
-[NacosConfigAnnoatationService]注解方式获取到的配置项目,name=snowalker,interest=coding
-2019-02-22 11:54:55.209 [main] INFO  c.g.m.d.p.config.NacosConfigAnnoatationService [37] - 
-[NacosConfigAnnoatationService]注解方式获取到的配置项目,name=snowalker,interest=coding
-2019-02-22 11:54:59.210 [main] INFO  c.g.m.d.p.config.NacosConfigAnnoatationService [37] - 
-[NacosConfigAnnoatationService]注解方式获取到的配置项目,name=snowalker,interest=coding
-</code></pre><p>保持项目运行，我们进入管理控制台，在配置列表我们的那一项，点击 <strong>编辑</strong></p>
-<p>修改name对应的配置为 snowalker23333 点击发布如图</p>
-<p><img src="/2019/02/22/springboot2-x整合nacos配置服务实现配置获取及刷新/./update.png" alt="修改配置"></p>
-<p>Nacos后台很贴心的为我们让我们对修改前后的配置项进行二次确认，点击确认发布后，查看控制台日志</p>
-<pre><code>2019-02-22 11:55:23.214 [main] INFO  c.g.m.d.p.config.NacosConfigAnnoatationService [37] -
-[NacosConfigAnnoatationService]注解方式获取到的配置项目,name=snowalker,interest=coding
-2019-02-22 11:55:27.215 [main] INFO  c.g.m.d.p.config.NacosConfigAnnoatationService [37] - 
-[NacosConfigAnnoatationService]注解方式获取到的配置项目,name=snowalker2333333,interest=code
-2019-02-22 11:55:31.215 [main] INFO  c.g.m.d.p.config.NacosConfigAnnoatationService [37] - 
-[NacosConfigAnnoatationService]注解方式获取到的配置项目,name=snowalker2333333,interest=code
-</code></pre><p>可以看到，在项目运行的过程中，配置项热更新了。</p>
-<p>它内部是通过一个Listener监听器在后台监听服务端的推送消息，达到对配置项的热更新的，和配置文件比起来相当方便了。</p>
-<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文主要从实战的角度，带领读者在springboot2.x中整合了Nacos实现了配置的读取及刷新的功能，从应用的角度出发，应当足够日常开发使用了，更多的<br>使用技巧和实现细节，我们有机会再讲。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;&lt;a href=&quot;http://wuwenliang.net/2019/02/22/springboot2-x%E6%95%B4%E5%90%88nacos%E9%85%8D%E7%BD%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E7%8E%B0%E9%85%8D%E7%BD%AE%E8%8E%B7%E5%8F%96%E5%8F%8A%E5%88%B7%E6%96%B0/&quot;&gt;原文链接&lt;/a&gt;&lt;/p&gt;
-&lt;p&gt;本文我将带领大家在springboot2.x的开发框架中整合alibaba-nacos，实现配置获取及刷新等功能。&lt;/p&gt;
-&lt;p&gt;引用官方介绍：&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您实现动态服务发现、服务配置管理、服务及流量管理。&lt;br&gt;Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。&lt;br&gt;Nacos 是构建以“服务”为中心的现代应用架构(例如微服务范式、云原生范式)的服务基础设施。&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;可以看到，Nacos主要面向分布式配置级服务发现等领域，由于之前使用过阿里云的ACM配置服务体验良好，而Nacos便是ACM的开源版本，因此我们选择了Nacos作为&lt;br&gt;业务框架的分布式配置中心。&lt;/p&gt;
-&lt;p&gt;接下来开始进行Nacos的整合。&lt;br&gt;&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="专题-分布式" scheme="http://wuwenliang.net/categories/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-      <category term="专题-分布式" scheme="http://wuwenliang.net/tags/%E4%B8%93%E9%A2%98-%E5%88%86%E5%B8%83%E5%BC%8F/"/>
     
   </entry>
   
